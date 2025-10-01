@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev --turbopack",
-  "build": "next build --turbopack",
-  "export": "next export",
-  "start": "next start",
-  "lint": "eslint"
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "export": "next export",
+    "start": "next start",
+    "lint": "eslint"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
+    "@hello-pangea/dnd": "^18.0.1",
+    "@xyflow/react": "^12.8.6",
     "firebase": "^12.3.0",
     "next": "15.5.4",
     "react": "19.1.0",

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { useRouter } from "next/router";
-import { getFirestore, collection, addDoc, query, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { app } from "../../firebase/config";
 import TaskCreationForm from "../../components/TaskCreationForm";
 import TaskCategoryList from "../../components/TaskCategoryList";
+import TaskFlowView from "../../components/TaskFlowView";
 import PendingInvitesList from "../../components/PendingInvitesList";
 import CollaboratorsList from "../../components/CollaboratorsList";
 import InviteForm from "../../components/InviteForm";
@@ -17,6 +18,7 @@ type Task = {
   description: string;
   category: string;
   completed: boolean;
+  position?: { x: number; y: number };
 };
 
 const ProjectPage: React.FC = () => {
@@ -145,13 +147,62 @@ const ProjectPage: React.FC = () => {
     if (!projectId || !user) return;
     const q = query(collection(db, "projects", String(projectId), "tasks"));
     const unsub = onSnapshot(q, (snap) => {
-      setTasks(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task)));
+      setTasks(
+        snap.docs
+          .map(doc => {
+            const data = doc.data();
+            // Defensive: ensure category is always present
+            if (!data.category) return null;
+            return {
+              id: doc.id,
+              ...data,
+              position: data.position ? data.position : undefined,
+            } as Task;
+          })
+          .filter(Boolean) as Task[] // Remove nulls (tasks without category)
+      );
     });
     return () => unsub();
   }, [projectId, user]);
 
-  // Get unique categories from tasks
-  const categories = Array.from(new Set(tasks.map(t => t.category)));
+  // Compute all categories from tasks
+  const allCategories = Array.from(new Set(tasks.map(t => t.category)));
+  // Category order state
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
+
+  // Ensure categoryOrder always includes all categories (fallback to allCategories if empty)
+  const effectiveCategoryOrder = categoryOrder.length > 0 ? categoryOrder.filter(cat => allCategories.includes(cat)).concat(allCategories.filter(cat => !categoryOrder.includes(cat))) : allCategories;
+
+  // Listen for categoryOrder in Firestore (sync only on Firestore change, not allCategories change)
+  useEffect(() => {
+    if (!projectId || !user) return;
+    const projectRef = doc(db, "projects", String(projectId));
+    const unsub = onSnapshot(projectRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        // If order exists, use it, else fallback to allCategories
+        if (Array.isArray(data.categoryOrder)) {
+          const firestoreOrder = data.categoryOrder.filter((cat: string) => allCategories.includes(cat)).concat(allCategories.filter(cat => !data.categoryOrder.includes(cat)));
+          setCategoryOrder(firestoreOrder);
+        } else {
+          setCategoryOrder(allCategories);
+        }
+      }
+    });
+    return () => unsub();
+  }, [projectId, user, allCategories]);
+
+  // Handler to update category order in Firestore
+  const handleCategoryOrderChange = async (newOrder: string[]) => {
+    setCategoryOrder(newOrder);
+    if (!projectId) return;
+    try {
+      const projectRef = doc(db, "projects", String(projectId));
+      await updateDoc(projectRef, { categoryOrder: newOrder });
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,12 +228,35 @@ const ProjectPage: React.FC = () => {
     }
   };
 
-  // Group tasks by category
+  // Group tasks by category, skip tasks with missing/empty category
   const tasksByCategory: { [cat: string]: Task[] } = {};
   tasks.forEach(task => {
+    if (!task.category) return;
     if (!tasksByCategory[task.category]) tasksByCategory[task.category] = [];
     tasksByCategory[task.category].push(task);
   });
+
+  // Handler to update task status (e.g., mark as complete)
+  const handleUpdateTaskStatus = async (taskId: string, completed: boolean) => {
+    if (!projectId) return;
+    try {
+      const taskRef = doc(db, "projects", String(projectId), "tasks", taskId);
+      await updateDoc(taskRef, { completed });
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  // Handler to delete a task
+  const handleDeleteTask = async (taskId: string) => {
+    if (!projectId) return;
+    try {
+      const taskRef = doc(db, "projects", String(projectId), "tasks", taskId);
+      await deleteDoc(taskRef);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
     <div style={{ maxWidth: 600, margin: "2rem auto", padding: 24 }}>
@@ -223,11 +297,18 @@ const ProjectPage: React.FC = () => {
         setCategory={setCategory}
         newCategory={newCategory}
         setNewCategory={setNewCategory}
-        categories={categories}
+        categories={allCategories}
         error={error}
         onSubmit={handleCreateTask}
       />
-      <TaskCategoryList tasksByCategory={tasksByCategory} categories={categories} />
+      <TaskCategoryList
+        tasksByCategory={tasksByCategory}
+        categories={allCategories}
+        categoryOrder={effectiveCategoryOrder}
+        onCategoryOrderChange={handleCategoryOrderChange}
+        onUpdateTaskStatus={handleUpdateTaskStatus}
+        onDeleteTask={handleDeleteTask}
+      />
     </div>
   );
 };
