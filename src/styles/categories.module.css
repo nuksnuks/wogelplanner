@@ -1,0 +1,58 @@
+.categoryColumn {
+  min-width: 200px;
+  margin-bottom: 16px;
+  border: 1px solid var(--foreground);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--background);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.categoryColumnDragging {
+  background: #e3f2fd;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.categoryList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.categoryTaskItem {
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.completedCategoryColumn {
+  background: #f4f4f4;
+}
+
+.deleteCategoryButton {
+  margin-left: 8px;
+}
+
+.incompleteCategoriesRow {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  overflow-x: auto;
+}
+
+.completedCategoriesRow {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  overflow-x: auto;
+}
+
+.timeAllocated {
+  font-size: 0.9em;
+  color: #555;
+}
