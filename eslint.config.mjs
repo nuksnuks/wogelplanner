@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "src/app/dataconnect-generated/**",
+      "src/dataconnect-generated/**",
     ],
   },
 ];
