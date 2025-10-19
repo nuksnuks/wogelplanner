@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { app } from "../firebase/config";
+import styles from "../styles/overview.module.css";
+
+import CreateProjectForm from "../components/CreateProjectForm";
+import MyProjectsList from "../components/MyProjectsList";
+import CollaborationProjectsList from "../components/CollaborationProjectsList";
+import InvitesList from "../components/InvitesList";
+import LogoutButton from "@/components/LogoutButton";
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -15,16 +22,6 @@ type Project = {
   collaborators: string[];
   pendingInvites?: { email: string; invitedAt: number }[];
 };
-
-
-
-import CreateProjectForm from "../components/CreateProjectForm";
-import MyProjectsList from "../components/MyProjectsList";
-import CollaborationProjectsList from "../components/CollaborationProjectsList";
-import InvitesList from "../components/InvitesList";
-import LogoutButton from "@/components/LogoutButton";
-
-
 
 const Overview = () => {
   const [user, setUser] = useState<ReturnType<typeof getAuth>["currentUser"] | null>(null);
@@ -108,14 +105,20 @@ const Overview = () => {
   if (!user) return <div>Loading...</div>;
 
   return (
-    <div style={{ maxWidth: 700, margin: "2rem auto", padding: 24 }}>
-      <h1>Projects Overview</h1>
-      <LogoutButton />  
-      <CreateProjectForm onCreate={handleCreateProject} error={error} projectOwner={user?.uid || ""} />
-      <MyProjectsList projects={myProjects} />
-      <CollaborationProjectsList projects={collabProjects} />
-      <InvitesList invites={invites} onRespond={handleInviteResponse} />
-    </div>
+    <div>
+      <LogoutButton />
+      <main className={styles.main}>
+        <section className={styles.createSection}>
+          <CreateProjectForm onCreate={handleCreateProject} error={error} projectOwner={user?.uid || ""} />
+        </section>
+        <section>
+          <h1>Projects Overview</h1>
+          <MyProjectsList projects={myProjects} />
+          <CollaborationProjectsList projects={collabProjects} />
+          <InvitesList invites={invites} onRespond={handleInviteResponse} />
+        </section>
+      </main>
+  </div>
   );
 };
 

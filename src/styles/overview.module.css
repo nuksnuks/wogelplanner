@@ -1,0 +1,19 @@
+.overviewContainer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    width: 100vw;
+    min-height: 100vh;
+    /* border: 2px solid red;  Uncomment for debugging */
+}
+
+.createSection {
+    display:flex;
+    flex-direction: row;
+}
+
+.main {
+    display: flex;
+    flex-direction: row
+}
