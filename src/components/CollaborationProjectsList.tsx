@@ -1,4 +1,5 @@
 import styles from "../styles/projectsList.module.css"
+import link from "../styles/links.module.css";
 
 type Project = {
   id: string;
@@ -37,7 +38,7 @@ const CollaborationProjectsList: React.FC<Props> = ({ projects }) => {
         {projects.map((p) => (
           <div key={p.id} className={styles.projectItem}>
             <h3>
-              <Link href={`/project/${p.id}`}>
+              <Link href={`/project/${p.id}`} className={link.projectLink}>
                 {p.title}
               </Link>
             </h3>

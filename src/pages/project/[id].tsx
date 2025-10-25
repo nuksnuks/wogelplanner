@@ -14,6 +14,7 @@ import BackButton from "@/components/BackButton";
 
 import headerStyles from "../../styles/header.module.css";
 import styles from "../../styles/overview.module.css";
+import Link from "next/link";
 
 const db = getFirestore(app);
 
@@ -376,6 +377,7 @@ const ProjectPage: React.FC = () => {
             onDeleteTask={handleDeleteTask}
             taskDurations={taskDurations}
             projectId={String(projectId)}
+
           />
         </div>
       </div>

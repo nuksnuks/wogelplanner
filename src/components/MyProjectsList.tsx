@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getProjectCompletion } from "../utils/getProjectCompletion";
 import styles from "../styles/projectsList.module.css";
+import link from "../styles/links.module.css";
 
 const MyProjectsList: React.FC<Props> = ({ projects }) => {
   const [completion, setCompletion] = useState<{ [id: string]: number }>({});
@@ -38,7 +39,7 @@ const MyProjectsList: React.FC<Props> = ({ projects }) => {
         {projects.map(p => (
           <div className={styles.projectItem} key={p.id}>
             <h3>
-              <Link href={`/project/${p.id}`}>
+              <Link href={`/project/${p.id}`} className={link.projectLink}>
                 {p.title}
               </Link>
             </h3>
