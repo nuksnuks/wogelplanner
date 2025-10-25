@@ -26,7 +26,6 @@ const TaskFlowView: React.FC<TaskFlowViewProps> = ({ tasks, projectId, edges, se
 
   return (
     <div>
-      <h2>Task Graph</h2>
       <TaskFlow
         tasks={tasks}
         edges={edges}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import TaskDetailsModal from "./TaskDetailsModal";
 import styles from "../styles/categories.module.css";
@@ -22,7 +22,6 @@ type TaskCategoryListProps = {
   projectId: string;
 };
 
-import { useState } from "react";
 import { getFirestore, writeBatch, doc } from "firebase/firestore";
 
 
@@ -109,6 +108,36 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
     }
     return ms + ' ms';
   }
+
+  // Keep selectedTask in sync with updated tasks from props.
+  // If the task was edited elsewhere (e.g. saved in Firestore), update the modal's task prop.
+  useEffect(() => {
+    if (!selectedTask) return;
+    // Find updated task across all categories
+    let updated: Task | undefined;
+    for (const cat of Object.keys(tasksByCategory)) {
+      const found = tasksByCategory[cat].find(t => t.id === selectedTask.id);
+      if (found) {
+        updated = found;
+        break;
+      }
+    }
+    if (!updated) {
+      // task removed/deleted -> close modal
+      setSelectedTask(null);
+      return;
+    }
+    // Only set if any relevant fields changed
+    if (
+      updated.title !== selectedTask.title ||
+      updated.description !== selectedTask.description ||
+      updated.category !== selectedTask.category ||
+      updated.completed !== selectedTask.completed ||
+      JSON.stringify(updated.position) !== JSON.stringify(selectedTask.position)
+    ) {
+      setSelectedTask(updated);
+    }
+  }, [tasksByCategory, selectedTask]);
 
   return (
     <>
@@ -201,6 +230,7 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
               : undefined
           }
           projectId={props.projectId}
+          categories={categoryOrder}
         />
       )}
     </>

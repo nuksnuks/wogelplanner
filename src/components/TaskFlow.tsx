@@ -51,8 +51,9 @@ export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNo
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
         style: {
-          border: task.completed ? "2px solid #4caf50" : "2px solid #e74c3c",
-          background: task.completed ? "#e8f5e9" : "#fff3f3",
+          color: task.completed ? "#4caf50" : "#e74c3c",
+          background: "#72727250",
+          border: task.completed ? "2px solid #4caf50" : "2px solid #e74c3c"
         },
       })),
     [tasks]
@@ -102,7 +103,7 @@ export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNo
   );
 
   return (
-    <div style={{ width: "100%", height: 500, background: "#f9f9f9", borderRadius: 8, margin: "32px 0" }}>
+    <div style={{ width: "100%", height: 680 }}>
       <ReactFlow
         nodes={nodes}
         onNodesChange={onNodesChange}
@@ -113,7 +114,7 @@ export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNo
         minZoom={0.2}
         maxZoom={2}
       >
-        <MiniMap />
+
         <Controls />
         <Background gap={16} />
       </ReactFlow>

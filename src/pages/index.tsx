@@ -6,6 +6,7 @@ import { app } from "../firebase/config";
 import { FcGoogle } from "react-icons/fc";
 import { HiOutlineMail } from "react-icons/hi";
 import styles from "../styles/forms.module.css";
+import Image from "next/image";
 
 const Index: React.FC = () => {
     const [email, setEmail] = useState("");
@@ -54,10 +55,13 @@ const Index: React.FC = () => {
 
     return (
         <div className={styles.forms}>
-            <h1>{isSignup ? "Sign Up" : "Login"}</h1>
             <form 
                 onSubmit={isSignup ? handleSignup : handleEmailLogin} 
                 >
+                <div style={{ backgroundColor: "#ffffffff;", borderRadius: "100pc" , padding: "1rem" }}>
+                    <Image src="/wogelplanner-logo.svg" alt="Wogelplanner Logo" width={100} height={100} />
+                </div>
+                <h1>{isSignup ? "Sign Up" : "Login"}</h1>
                 {isSignup && (
                     <input
                         type="text"
@@ -83,13 +87,14 @@ const Index: React.FC = () => {
                 />
                 <button 
                     type="submit"
+                    style={{ width: "100%" }}
                 >
                 {isSignup ? "Sign Up" : <> 
                     <HiOutlineMail style={{ marginRight: 8 }} /> 
                     Login with Email
                     </>}
                 </button>
-                <hr style={{ margin: "1rem 0" }} />
+                <hr />
                 <button 
                     onClick={handleGoogleLogin} 
                     style={{ width: "100%" }}
@@ -97,7 +102,7 @@ const Index: React.FC = () => {
                     <FcGoogle style={{ marginRight: 8 }} />
                     Login with Google
                 </button>
-                <div style={{ marginTop: 16, textAlign: "center" }}>
+                <div style={{ textAlign: "center" }}>
                     {isSignup ? (
                         <>
                             Already have an account?&nbsp;

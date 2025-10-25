@@ -12,6 +12,7 @@ input, textarea, select {
   padding: 0.75rem 1rem;
   font-family: inherit;
   color: var(--black);
+  width: 90%;
 }
 
 textarea {
@@ -29,15 +30,13 @@ button {
   font-weight: 600;
   font-family: inherit;
   margin: 0 4px 0 4px;
-}
 
-button:active {
-  filter: brightness(0.95);
 }
 
 button.deleteButton, .deleteButton {
   background: #e74c3c !important;
   color: #fff !important;
+
 }
 @media (prefers-color-scheme: light) {
   :root {
@@ -55,10 +54,6 @@ button.deleteButton, .deleteButton {
   }
 }
 
-
-html, body, #__next {
-  height: 100%;
-}
 body {
   background: var(--background);
   color: var(--foreground);

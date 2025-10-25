@@ -15,6 +15,7 @@ type TaskDetailsModalProps = {
   onDeleteTask?: (taskId: string) => void;
   allocatedTimeMs?: number;
   projectId: string;
+  categories?: string[];
 };
 
 
@@ -22,7 +23,7 @@ import styles from "../styles/modal.module.css";
 import { doc, updateDoc, getFirestore } from "firebase/firestore";
 const db = getFirestore();
 
-const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose, onUpdateStatus, onDeleteTask, allocatedTimeMs, projectId }) => {
+const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose, onUpdateStatus, onDeleteTask, allocatedTimeMs, projectId, categories }) => {
   const [editField, setEditField] = React.useState<null | "title" | "description" | "category">(null);
   const [editValue, setEditValue] = React.useState("");
 
@@ -105,13 +106,28 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose, onUp
         </p>
         <p onDoubleClick={() => startEdit("category", task.category)}>
           <strong>Category:</strong> {editField === "category" ? (
-            <input
-              value={editValue}
-              onChange={e => setEditValue(e.target.value)}
-              onBlur={saveEdit}
-              onKeyDown={handleKeyDown}
-              autoFocus
-            />
+            categories && categories.length > 0 ? (
+              <select
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onBlur={saveEdit}
+                autoFocus
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onBlur={saveEdit}
+                onKeyDown={handleKeyDown}
+                autoFocus
+              />
+            )
           ) : (
             task.category
           )}

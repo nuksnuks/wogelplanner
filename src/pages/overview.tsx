@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { app } from "../firebase/config";
+import Image from "next/image";
 
 import CreateProjectForm from "../components/CreateProjectForm";
 import MyProjectsList from "../components/MyProjectsList";
@@ -109,7 +110,7 @@ const Overview = () => {
   return (
     <div>
       <div className={headerStyles.header}>
-        <img src="/wogelplanner-logo.svg" alt="wogelplanner logo" className={headerStyles.logo}/>
+        <Image src="/wogelplanner-logo.svg" alt="wogelplanner logo" className={headerStyles.logo} width={100} height={100} />
         <LogoutButton />
       </div>
       <div className={overviewStyles.main}>

@@ -327,7 +327,6 @@ const ProjectPage: React.FC = () => {
         </button>
       </div>
 
-      <h1>Project: {projectTitle}</h1>
       <div className={styles.main}>
         <div className={styles.createSection}>
           <TaskCreationForm
@@ -368,7 +367,7 @@ const ProjectPage: React.FC = () => {
         </div>
 
         <div className={styles.projectsSection}>
-          
+          <h1>Project: {projectTitle}</h1>
           <TaskCategoryList
             tasksByCategory={tasksByCategory}
             categoryOrder={effectiveCategoryOrder}
