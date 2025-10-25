@@ -1,6 +1,5 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { getProjectIdsFromFile } from "../../getProjectIdsFromFile";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { useRouter } from "next/router";
 import { getFirestore, collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -13,8 +12,10 @@ import CollaboratorsList from "../../components/CollaboratorsList";
 import InviteForm from "../../components/InviteForm";
 import BackButton from "@/components/BackButton";
 
-const db = getFirestore(app);
+import headerStyles from "../../styles/header.module.css";
+import styles from "../../styles/overview.module.css";
 
+const db = getFirestore(app);
 
 type Task = {
   id: string;
@@ -309,77 +310,77 @@ const ProjectPage: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "2rem auto", padding: 24 }}>
-      <BackButton />
-      <h1>Project: {projectTitle}</h1>
-      <div style={{ marginBottom: 16 }}>
-        <a
-          href={projectId ? `/project/${projectId}/taskflow` : "#"}
-          style={{
-            display: "inline-block",
-            padding: "8px 16px",
-            background: "#1976d2",
-            color: "#fff",
-            borderRadius: 4,
-            textDecoration: "none",
-            fontWeight: 500,
-            marginBottom: 8
-          }}
-        >
+    <>
+      <div className={headerStyles.header}>
+        <BackButton />
+        <InviteForm
+          inviteEmail={inviteEmail}
+          setInviteEmail={setInviteEmail}
+          onInvite={handleInvite}
+          error={error}
+        />
+        <button
+          type="button"
+          onClick={() => router.push(`/project/${projectId}/taskflow`)}
+          >
           View Task Graph
-        </a>
+        </button>
       </div>
-      <InviteForm
-        inviteEmail={inviteEmail}
-        setInviteEmail={setInviteEmail}
-        onInvite={handleInvite}
-        error={error}
-      />
-      <PendingInvitesList
-        pendingInvites={pendingInvites}
-        isOwner={!!(user?.email && projectOwner && user.email.trim().toLowerCase() === projectOwner.trim().toLowerCase())}
-        onRemove={async (email) => {
-          try {
-            const projectRef = doc(db, "projects", String(projectId));
-            await updateDoc(projectRef, {
-              pendingInvites: pendingInvites.filter(e => e.email !== email),
-            });
-          } catch (err) {
-            if (err instanceof Error) setError(err.message);
-            else setError(String(err));
-          }
-        }}
-      />
-      <CollaboratorsList
-        collaborators={collaborators}
-        projectOwner={projectOwner}
-        userEmail={user?.email}
-        onKick={handleKickCollaborator}
-        onLeave={handleLeaveProject}
-      />
-      <TaskCreationForm
-        title={title}
-        setTitle={setTitle}
-        description={description}
-        setDescription={setDescription}
-        category={category}
-        setCategory={setCategory}
-        newCategory={newCategory}
-        setNewCategory={setNewCategory}
-        categories={allCategories}
-        error={error}
-        onSubmit={handleCreateTask}
-      />
-      <TaskCategoryList
-        tasksByCategory={tasksByCategory}
-        categoryOrder={effectiveCategoryOrder}
-        onCategoryOrderChange={handleCategoryOrderChange}
-        onUpdateTaskStatus={handleUpdateTaskStatus}
-        onDeleteTask={handleDeleteTask}
-        taskDurations={taskDurations}
-        projectId={String(projectId)}
-      />
-    </div>
+
+      <h1>Project: {projectTitle}</h1>
+      <div className={styles.main}>
+        <div className={styles.createSection}>
+          <TaskCreationForm
+            title={title}
+            setTitle={setTitle}
+            description={description}
+            setDescription={setDescription}
+            category={category}
+            setCategory={setCategory}
+            newCategory={newCategory}
+            setNewCategory={setNewCategory}
+            categories={allCategories}
+            error={error}
+            onSubmit={handleCreateTask}
+          />
+          <CollaboratorsList
+            collaborators={collaborators}
+            projectOwner={projectOwner}
+            userEmail={user?.email}
+            onKick={handleKickCollaborator}
+            onLeave={handleLeaveProject}
+          />
+          <PendingInvitesList
+            pendingInvites={pendingInvites}
+            isOwner={!!(user?.email && projectOwner && user.email.trim().toLowerCase() === projectOwner.trim().toLowerCase())}
+            onRemove={async (email) => {
+              try {
+                const projectRef = doc(db, "projects", String(projectId));
+                await updateDoc(projectRef, {
+                  pendingInvites: pendingInvites.filter(e => e.email !== email),
+                });
+              } catch (err) {
+                if (err instanceof Error) setError(err.message);
+                else setError(String(err));
+              }
+            }}
+          />
+        </div>
+
+        <div className={styles.projectsSection}>
+          
+          <TaskCategoryList
+            tasksByCategory={tasksByCategory}
+            categoryOrder={effectiveCategoryOrder}
+            onCategoryOrderChange={handleCategoryOrderChange}
+            onUpdateTaskStatus={handleUpdateTaskStatus}
+            onDeleteTask={handleDeleteTask}
+            taskDurations={taskDurations}
+            projectId={String(projectId)}
+          />
+        </div>
+      </div>
+    </>
   );
 };
 

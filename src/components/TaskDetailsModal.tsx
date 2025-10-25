@@ -125,9 +125,9 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose, onUp
             {task.completed ? "Mark as Incomplete" : "Mark as Complete"}
           </button>
         )}
-        <button className={styles.closeButton} onClick={onClose}>Close</button>
+        <button onClick={onClose}>Close</button>
         {onDeleteTask && (
-          <button className={styles.deleteButton} onClick={handleDelete}>
+          <button onClick={handleDelete} className="deleteButton">
             Delete Task
           </button>
         )}

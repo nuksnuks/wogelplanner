@@ -1,20 +1,16 @@
 
 
-.forms {
+.forms form{
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
     margin: 0 auto;
     border-radius: 24px;
-    max-width: 800px;
+    max-width: 500px;
     background-color: var(--formcolor);
 }
-.forms form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
+
 
 
 

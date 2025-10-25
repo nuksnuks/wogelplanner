@@ -1,0 +1,16 @@
+.projectList {
+    display: flex;
+    gap: 4px;
+}
+
+.projectItem {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.projectItem h3 a{
+    color: -var(--foreground);
+
+}

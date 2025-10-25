@@ -112,7 +112,7 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
 
   return (
     <>
-      <h2>Incomplete Tasks by Category</h2>
+      <h2>To do</h2>
       {categoryOrder.length === 0 && <p>No tasks yet.</p>}
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="categories-incomplete" direction="horizontal">
@@ -136,9 +136,9 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                       style={dragProvided.draggableProps.style}
                     >
                       <div className={styles.categoryHeader}>
-                        <h3 style={{ margin: 0 }}>{cat}</h3>
+                        <h3>{cat}</h3>
                         <button
-                          className={"deleteButton " + styles.deleteCategoryButton}
+                          className={`deleteButton ${styles.deleteCategoryButton}`}
                           title="Delete category"
                           onClick={() => handleDeleteCategory(cat)}
                         >
@@ -147,14 +147,18 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                       </div>
                       <ul className={styles.categoryList}>
                         {incompleteByCategory[cat]?.map(task => (
-                          <li key={task.id} className={styles.categoryTaskItem} onClick={() => setSelectedTask(task)}>
+                          <div 
+                            key={task.id} 
+                            className={styles.categoryTaskItem} 
+                            onClick={() => setSelectedTask(task)}
+                          >
                             <strong>{task.title}</strong>
                             {taskDurations && taskDurations[cat] && typeof taskDurations[cat][task.id] === 'number' && (
                               <div className={styles.timeAllocated}>
-                                Time allocated: {formatDuration(taskDurations[cat][task.id])}
+                                max time for task: {formatDuration(taskDurations[cat][task.id])}
                               </div>
                             )}
-                          </li>
+                          </div>
                         ))}
                       </ul>
                     </div>
@@ -167,12 +171,12 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
         </Droppable>
       </DragDropContext>
 
-      <h2 style={{ marginTop: 32 }}>Completed Tasks by Category</h2>
+      <h2>Completed Tasks</h2>
       <div className={styles.completedCategoriesRow}>
         {categoryOrder.map((cat: string) => (
           <div key={cat} className={styles.categoryColumn}>
             <div className={styles.categoryHeader}>
-              <h3 style={{ margin: 0 }}>{cat}</h3>
+              <h3>{cat}</h3>
             </div>
             <ul className={styles.categoryList}>
               {completeByCategory[cat]?.map(task => (

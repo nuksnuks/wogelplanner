@@ -14,8 +14,9 @@ const CreateProjectForm: React.FC<Props> = ({ onCreate, error, projectOwner }) =
   const [deadline, setDeadline] = useState("");
 
   return (
+    <div className={styles.forms}>
     <form 
-        className={styles.forms}
+        
         onSubmit={e => {
             e.preventDefault();
             onCreate(title, kickDate, deadline, projectOwner);
@@ -28,6 +29,7 @@ const CreateProjectForm: React.FC<Props> = ({ onCreate, error, projectOwner }) =
       <button type="submit">Create Project</button>
       {error && <p style={{ color: "red" }}>{error}</p>}
     </form>
+    </div>
   );
 };
 

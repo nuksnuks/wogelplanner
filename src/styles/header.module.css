@@ -1,0 +1,15 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: -var(--header-background);
+  
+}
+
+.logo {
+  height: 48px;
+  width: auto;
+  margin-right: 12px;
+  display: inline-block;
+  vertical-align: middle;
+}

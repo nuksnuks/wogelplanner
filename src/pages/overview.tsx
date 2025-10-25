@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { app } from "../firebase/config";
-import styles from "../styles/overview.module.css";
 
 import CreateProjectForm from "../components/CreateProjectForm";
 import MyProjectsList from "../components/MyProjectsList";
 import CollaborationProjectsList from "../components/CollaborationProjectsList";
 import InvitesList from "../components/InvitesList";
 import LogoutButton from "@/components/LogoutButton";
+
+import overviewStyles from "../styles/overview.module.css";
+import headerStyles from "../styles/header.module.css";
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -106,18 +108,24 @@ const Overview = () => {
 
   return (
     <div>
-      <LogoutButton />
-      <main className={styles.main}>
-        <section className={styles.createSection}>
-          <CreateProjectForm onCreate={handleCreateProject} error={error} projectOwner={user?.uid || ""} />
-        </section>
-        <section>
+      <div className={headerStyles.header}>
+        <img src="/wogelplanner-logo.svg" alt="wogelplanner logo" className={headerStyles.logo}/>
+        <LogoutButton />
+      </div>
+      <div className={overviewStyles.main}>
+        <div className={overviewStyles.createSection}>
+          <CreateProjectForm 
+            onCreate={handleCreateProject} 
+            error={error} 
+            projectOwner={user?.email || ""} />
+        </div>
+        <div className={overviewStyles.projectsSection}>
           <h1>Projects Overview</h1>
           <MyProjectsList projects={myProjects} />
           <CollaborationProjectsList projects={collabProjects} />
           <InvitesList invites={invites} onRespond={handleInviteResponse} />
-        </section>
-      </main>
+        </div>
+      </div>
   </div>
   );
 };

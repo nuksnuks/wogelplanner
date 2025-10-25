@@ -5,7 +5,6 @@
   border-radius: 8px;
   padding: 8px;
   background: var(--background);
-  transition: background 0.2s, box-shadow 0.2s;
 }
 
 .categoryColumnDragging {
@@ -28,6 +27,9 @@
 .categoryTaskItem {
   cursor: pointer;
   padding: 4px 0;
+  border: #555 1px solid;
+  border-radius: 4px;
+  padding: 4;
 }
 
 .completedCategoryColumn {
@@ -41,14 +43,14 @@
 .incompleteCategoriesRow {
   display: flex;
   flex-direction: row;
-  gap: 24px;
+  gap: 8px;
   overflow-x: auto;
 }
 
 .completedCategoriesRow {
   display: flex;
   flex-direction: row;
-  gap: 24px;
+  gap: 8px;
   overflow-x: auto;
 }
 

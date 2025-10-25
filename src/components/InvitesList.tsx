@@ -1,3 +1,5 @@
+import styles from "../styles/projectsList.module.css";
+
 type Project = {
   id: string;
   title: string;
@@ -16,15 +18,23 @@ type Props = {
 const InvitesList: React.FC<Props> = ({ invites, onRespond }) => (
   <>
     <h2>Invites</h2>
-    <ul>
-      {invites.map(p => (
-        <li key={p.id}>
-          {p.title} (Owner: {p.owner})
-          <button onClick={() => onRespond(p.id, true)} style={{ marginLeft: 8 }}>Accept</button>
-          <button onClick={() => onRespond(p.id, false)} style={{ marginLeft: 4 }}>Deny</button>
-        </li>
+    <div className={styles.projectList}>
+      {invites.map((p) => (
+        <div key={p.id} className={styles.projectItem}>
+          <h3>
+            {p.title} 
+          </h3>
+          <span>By {p.owner}</span>
+          <br />
+          <button onClick={() => onRespond(p.id, true)} style={{ marginLeft: 8 }}>
+            Accept
+          </button>
+          <button onClick={() => onRespond(p.id, false)} className="deleteButton">
+            Deny
+          </button>
+        </div>
       ))}
-    </ul>
+    </div>
   </>
 );
 

@@ -15,16 +15,16 @@ interface PendingInvitesListProps {
 const PendingInvitesList: React.FC<PendingInvitesListProps> = ({ pendingInvites, isOwner, onRemove }) => (
   <div style={{ marginBottom: 24 }}>
     <h3>Pending Invites</h3>
-    <ul>
+    <div>
       {pendingInvites.map(inv => (
-        <li key={inv.email}>
-          {inv.email} (invited {new Date(inv.invitedAt).toLocaleDateString()})
+        <span key={inv.email}>
+          {inv.email}
           {isOwner && (
-            <button style={{ marginLeft: 8 }} onClick={() => onRemove(inv.email)}>Remove</button>
+            <button className="deleteButton" onClick={() => onRemove(inv.email)}>Remove</button>
           )}
-        </li>
+        </span>
       ))}
-    </ul>
+    </div>
   </div>
 );
 

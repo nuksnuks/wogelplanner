@@ -8,12 +8,18 @@
     /* border: 2px solid red;  Uncomment for debugging */
 }
 
-.createSection {
-    display:flex;
-    flex-direction: row;
-}
-
 .main {
     display: flex;
     flex-direction: row
+}
+
+.createSection {
+    display:flex;
+    flex-direction: column;
+}
+
+.projectsSection {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
 }

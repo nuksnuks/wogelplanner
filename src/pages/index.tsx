@@ -84,40 +84,44 @@ const Index: React.FC = () => {
                 <button 
                     type="submit"
                 >
-                    {isSignup ? "Sign Up" : <> <HiOutlineMail style={{ marginRight: 8 }} /> Login with Email</>}</button>
+                {isSignup ? "Sign Up" : <> 
+                    <HiOutlineMail style={{ marginRight: 8 }} /> 
+                    Login with Email
+                    </>}
+                </button>
+                <hr style={{ margin: "1rem 0" }} />
+                <button 
+                    onClick={handleGoogleLogin} 
+                    style={{ width: "100%" }}
+                >
+                    <FcGoogle style={{ marginRight: 8 }} />
+                    Login with Google
+                </button>
+                <div style={{ marginTop: 16, textAlign: "center" }}>
+                    {isSignup ? (
+                        <>
+                            Already have an account?&nbsp;
+                            <button 
+                                type="button" 
+                                onClick={() => setIsSignup(false)} 
+                                style={{ color: "blue", background: "none", border: "none", cursor: "pointer"}}
+                            >
+                            Login
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            Don&apos;t have an account?&nbsp;
+                            <button 
+                                type="button" 
+                                onClick={() => setIsSignup(true)} 
+                                style={{ color: "blue", background: "none", border: "none", cursor: "pointer" }}>
+                                Sign Up
+                            </button>
+                        </>
+                    )}
+                </div>
             </form>
-            <hr style={{ margin: "1rem 0" }} />
-            <button 
-                onClick={handleGoogleLogin} 
-                style={{ width: "100%" }}
-            >
-                <FcGoogle style={{ marginRight: 8 }} />
-                Login with Google
-            </button>
-            <div style={{ marginTop: 16, textAlign: "center" }}>
-                {isSignup ? (
-                    <>
-                        Already have an account?&nbsp;
-                        <button 
-                            type="button" 
-                            onClick={() => setIsSignup(false)} 
-                            style={{ color: "blue", background: "none", border: "none", cursor: "pointer"}}
-                        >
-                        Login
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        Don&apos;t have an account?&nbsp;
-                        <button 
-                            type="button" 
-                            onClick={() => setIsSignup(true)} 
-                            style={{ color: "blue", background: "none", border: "none", cursor: "pointer" }}>
-                            Sign Up
-                        </button>
-                    </>
-                )}
-            </div>
             {error && <p style={{ color: "red" }}>{error}</p>}
         </div>
     );
