@@ -2,7 +2,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { useRouter } from "next/router";
-import { getFirestore, collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where, writeBatch } from "firebase/firestore";
 import { app } from "../../firebase/config";
 import TaskCreationForm from "../../components/TaskCreationForm";
 import TaskCategoryList from "../../components/TaskCategoryList";
@@ -14,7 +14,6 @@ import BackButton from "@/components/BackButton";
 
 import headerStyles from "../../styles/header.module.css";
 import styles from "../../styles/overview.module.css";
-import Link from "next/link";
 
 const db = getFirestore(app);
 
@@ -37,6 +36,12 @@ const ProjectPage: React.FC = () => {
   const [newCategory, setNewCategory] = useState("");
   const [error, setError] = useState("");
   const [projectTitle, setProjectTitle] = useState<string>("");
+  // Inline editing state for project metadata
+  const [editingProjectField, setEditingProjectField] = useState<null | "title" | "kickoff" | "deadline">(null);
+  const [projectEditValue, setProjectEditValue] = useState<string>("");
+
+  // Category rename state (handled inside TaskCategoryList)
+
   const [pendingInvites, setPendingInvites] = useState<{email: string, invitedAt: number}[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [collaborators, setCollaborators] = useState<string[]>([]);
@@ -182,26 +187,83 @@ const ProjectPage: React.FC = () => {
 
   // Ensure categoryOrder always includes all categories (fallback to allCategories if empty)
   const effectiveCategoryOrder = categoryOrder.length > 0 ? categoryOrder.filter(cat => allCategories.includes(cat)).concat(allCategories.filter(cat => !categoryOrder.includes(cat))) : allCategories;
-
-  // Listen for categoryOrder in Firestore (sync only on Firestore change, not allCategories change)
+ 
+  // Keep local categoryOrder in sync with the project document's saved order (if any)
   useEffect(() => {
-    if (!projectId || !user) return;
+    if (!projectId) return;
     const projectRef = doc(db, "projects", String(projectId));
     const unsub = onSnapshot(projectRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        // If order exists, use it, else fallback to allCategories
         if (Array.isArray(data.categoryOrder)) {
-          const firestoreOrder = data.categoryOrder.filter((cat: string) => allCategories.includes(cat)).concat(allCategories.filter(cat => !data.categoryOrder.includes(cat)));
-          setCategoryOrder(firestoreOrder);
-        } else {
-          setCategoryOrder(allCategories);
+          setCategoryOrder(data.categoryOrder as string[]);
         }
       }
     });
     return () => unsub();
-  }, [projectId, user, allCategories]);
+  }, [projectId]);
+ 
+  // Helpers: start editing project metadata
+  const startEditProjectField = (field: "title" | "kickoff" | "deadline", currentVal: string) => {
+    setEditingProjectField(field);
+    setProjectEditValue(currentVal || "");
+  };
 
+  const saveProjectField = async () => {
+    if (!editingProjectField || !projectId) {
+      setEditingProjectField(null);
+      return;
+    }
+    const projectRef = doc(db, "projects", String(projectId));
+    try {
+      if (editingProjectField === "title") {
+        await updateDoc(projectRef, { title: projectEditValue });
+        setProjectTitle(projectEditValue);
+      } else if (editingProjectField === "kickoff") {
+        // save as ISO string (if valid)
+        const iso = projectEditValue ? new Date(projectEditValue).toISOString() : null;
+        await updateDoc(projectRef, { kickDate: iso });
+        setKickoffDate(projectEditValue ? new Date(projectEditValue) : null);
+      } else if (editingProjectField === "deadline") {
+        const iso = projectEditValue ? new Date(projectEditValue).toISOString() : null;
+        await updateDoc(projectRef, { deadline: iso });
+        setDeadlineDate(projectEditValue ? new Date(projectEditValue) : null);
+      }
+    } catch (err) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    } finally {
+      setEditingProjectField(null);
+    }
+  };
+
+  // Rename a category across tasks and update stored categoryOrder
+  const renameCategory = async (oldName: string, newName: string) => {
+    if (!projectId || !oldName || !newName || oldName === newName) {
+      return;
+    }
+    try {
+      const tasksRef = collection(db, "projects", String(projectId), "tasks");
+      const q = query(tasksRef, where("category", "==", oldName));
+      const snap = await getDocs(q);
+      const batch = writeBatch(db);
+      snap.forEach((d) => {
+        batch.update(doc(db, "projects", String(projectId), "tasks", d.id), { category: newName });
+      });
+  // update categoryOrder based on the displayed order (effectiveCategoryOrder)
+  // This ensures we update the order users see, even if `categoryOrder` state is empty.
+  const newOrder = effectiveCategoryOrder.map(c => c === oldName ? newName : c);
+      const projectRef = doc(db, "projects", String(projectId));
+      batch.update(projectRef, { categoryOrder: newOrder });
+      await batch.commit();
+      // update local state to reflect rename immediately
+      setCategoryOrder(newOrder);
+    } catch (err) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    }
+  };
+  
   // Handler to update category order in Firestore
   const handleCategoryOrderChange = async (newOrder: string[]) => {
     setCategoryOrder(newOrder);
@@ -214,7 +276,7 @@ const ProjectPage: React.FC = () => {
       else setError(String(err));
     }
   };
-
+  
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -320,70 +382,114 @@ const ProjectPage: React.FC = () => {
           onInvite={handleInvite}
           error={error}
         />
-        <button
-          type="button"
-          onClick={() => router.push(`/project/${projectId}/taskflow`)}
-          >
+        <button type="button" onClick={() => router.push(`/project/${projectId}/taskflow`)}>
           View Task Graph
         </button>
       </div>
+ 
+       <div className={styles.main}>
+         <div className={styles.createSection}>
+           <TaskCreationForm
+             title={title}
+             setTitle={setTitle}
+             description={description}
+             setDescription={setDescription}
+             category={category}
+             setCategory={setCategory}
+             newCategory={newCategory}
+             setNewCategory={setNewCategory}
+             categories={allCategories}
+             error={error}
+             onSubmit={handleCreateTask}
+           />
+           <CollaboratorsList
+             collaborators={collaborators}
+             projectOwner={projectOwner}
+             userEmail={user?.email}
+             onKick={handleKickCollaborator}
+             onLeave={handleLeaveProject}
+           />
+           <PendingInvitesList
+             pendingInvites={pendingInvites}
+             isOwner={!!(user?.email && projectOwner && user.email.trim().toLowerCase() === projectOwner.trim().toLowerCase())}
+             onRemove={async (email) => {
+               try {
+                 const projectRef = doc(db, "projects", String(projectId));
+                 await updateDoc(projectRef, {
+                   pendingInvites: pendingInvites.filter(e => e.email !== email),
+                 });
+               } catch (err) {
+                 if (err instanceof Error) setError(err.message);
+                 else setError(String(err));
+               }
+             }}
+           />
+         </div>
+ 
+         <div className={styles.projectsSection}>
+          <div style={{ marginBottom: 12 }}>
+            <h1 onDoubleClick={() => startEditProjectField("title", projectTitle)}>
+              Project:{" "}
+              {editingProjectField === "title" ? (
+                <input
+                  value={projectEditValue}
+                  onChange={(e) => setProjectEditValue(e.target.value)}
+                  onBlur={saveProjectField}
+                  onKeyDown={(e) => e.key === "Enter" && saveProjectField()}
+                  autoFocus
+                />
+              ) : (
+                projectTitle || "Untitled Project"
+              )}
+            </h1>
 
-      <div className={styles.main}>
-        <div className={styles.createSection}>
-          <TaskCreationForm
-            title={title}
-            setTitle={setTitle}
-            description={description}
-            setDescription={setDescription}
-            category={category}
-            setCategory={setCategory}
-            newCategory={newCategory}
-            setNewCategory={setNewCategory}
-            categories={allCategories}
-            error={error}
-            onSubmit={handleCreateTask}
-          />
-          <CollaboratorsList
-            collaborators={collaborators}
-            projectOwner={projectOwner}
-            userEmail={user?.email}
-            onKick={handleKickCollaborator}
-            onLeave={handleLeaveProject}
-          />
-          <PendingInvitesList
-            pendingInvites={pendingInvites}
-            isOwner={!!(user?.email && projectOwner && user.email.trim().toLowerCase() === projectOwner.trim().toLowerCase())}
-            onRemove={async (email) => {
-              try {
-                const projectRef = doc(db, "projects", String(projectId));
-                await updateDoc(projectRef, {
-                  pendingInvites: pendingInvites.filter(e => e.email !== email),
-                });
-              } catch (err) {
-                if (err instanceof Error) setError(err.message);
-                else setError(String(err));
-              }
-            }}
-          />
-        </div>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 4 }}>
+              <div onDoubleClick={() => startEditProjectField("kickoff", kickoffDate ? kickoffDate.toISOString().slice(0,10) : "")}>
+                <strong>Kickoff:</strong>{" "}
+                {editingProjectField === "kickoff" ? (
+                  <input
+                    type="date"
+                    value={projectEditValue}
+                    onChange={(e) => setProjectEditValue(e.target.value)}
+                    onBlur={saveProjectField}
+                    autoFocus
+                  />
+                ) : kickoffDate ? kickoffDate.toLocaleDateString() : <em>—</em>}
+              </div>
 
-        <div className={styles.projectsSection}>
-          <h1>Project: {projectTitle}</h1>
-          <TaskCategoryList
-            tasksByCategory={tasksByCategory}
-            categoryOrder={effectiveCategoryOrder}
-            onCategoryOrderChange={handleCategoryOrderChange}
-            onUpdateTaskStatus={handleUpdateTaskStatus}
-            onDeleteTask={handleDeleteTask}
-            taskDurations={taskDurations}
-            projectId={String(projectId)}
+              <div onDoubleClick={() => startEditProjectField("deadline", deadlineDate ? deadlineDate.toISOString().slice(0,10) : "")}>
+                <strong>Deadline:</strong>{" "}
+                {editingProjectField === "deadline" ? (
+                  <input
+                    type="date"
+                    value={projectEditValue}
+                    onChange={(e) => setProjectEditValue(e.target.value)}
+                    onBlur={saveProjectField}
+                    autoFocus
+                  />
+                ) : deadlineDate ? deadlineDate.toLocaleDateString() : <em>—</em>}
+              </div>
+            </div>
 
-          />
-        </div>
-      </div>
-    </>
-  );
-};
+            {/* Categories are editable from the draggable columns in TaskCategoryList now. */}
+          </div>
+ 
+           <TaskCategoryList
+             tasksByCategory={tasksByCategory}
+             categoryOrder={effectiveCategoryOrder}
+             onCategoryOrderChange={handleCategoryOrderChange}
+             onRenameCategory={renameCategory}
+             onUpdateTaskStatus={handleUpdateTaskStatus}
+             onDeleteTask={handleDeleteTask}
+             taskDurations={taskDurations}
+             projectId={String(projectId)}
+ 
+           />
+         </div>
+       </div>
+     </>
+   );
+ };
 
 import type { GetServerSidePropsContext } from "next";
 export async function getServerSideProps(context: GetServerSidePropsContext) {
@@ -392,6 +498,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   return {
     props: { id },
   };
-}
+ }
 
-export default ProjectPage;
+ export default ProjectPage;

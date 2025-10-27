@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import TaskDetailsModal from "./TaskDetailsModal";
 import styles from "../styles/categories.module.css";
@@ -16,6 +16,7 @@ type TaskCategoryListProps = {
   tasksByCategory: { [cat: string]: Task[] };
   categoryOrder: string[];
   onCategoryOrderChange: (newOrder: string[]) => void;
+  onRenameCategory?: (oldName: string, newName: string) => Promise<void> | void;
   onUpdateTaskStatus?: (taskId: string, completed: boolean) => void;
   onDeleteTask?: (taskId: string) => void;
   taskDurations?: { [cat: string]: { [taskId: string]: number } };
@@ -26,8 +27,22 @@ import { getFirestore, writeBatch, doc } from "firebase/firestore";
 
 
 const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
-  const { tasksByCategory, categoryOrder, onCategoryOrderChange, onUpdateTaskStatus, onDeleteTask, taskDurations, projectId } = props;
+  const { tasksByCategory, categoryOrder, onCategoryOrderChange, onUpdateTaskStatus, onDeleteTask, taskDurations, projectId, onRenameCategory } = props;
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [categoryEditValue, setCategoryEditValue] = useState<string>("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Focus the inline edit input when editing starts
+  useEffect(() => {
+    if (editingCategory && inputRef.current) {
+      // small timeout to ensure the input is mounted
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 0);
+    }
+  }, [editingCategory]);
 
   // Delete a category and all its tasks, with confirmation
   const handleDeleteCategory = async (cat: string) => {
@@ -157,7 +172,6 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                     <div
                       ref={dragProvided.innerRef}
                       {...dragProvided.draggableProps}
-                      {...dragProvided.dragHandleProps}
                       className={[
                         styles.categoryColumn,
                         dragSnapshot.isDragging ? styles.categoryColumnDragging : ""
@@ -165,7 +179,40 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                       style={dragProvided.draggableProps.style}
                     >
                       <div className={styles.categoryHeader}>
-                        <h3>{cat}</h3>
+                        {/* drag handle placed on a small target so double-click on the title still works */}
+                        <span {...dragProvided.dragHandleProps} className={styles.dragHandle} aria-hidden>
+                          ☰
+                        </span>
+
+                        {editingCategory === `${cat}::incomplete` ? (
+                          <input
+                            ref={inputRef}
+                            className={styles.categoryEditInput}
+                            value={categoryEditValue}
+                            onChange={(e) => setCategoryEditValue(e.target.value)}
+                            onBlur={async () => {
+                              const newName = categoryEditValue.trim();
+                              setEditingCategory(null);
+                              if (newName && newName !== cat && onRenameCategory) {
+                                await onRenameCategory(cat, newName);
+                              }
+                            }}
+                            onKeyDown={async (e) => {
+                              if (e.key === "Enter") {
+                                const newName = categoryEditValue.trim();
+                                setEditingCategory(null);
+                                if (newName && newName !== cat && onRenameCategory) {
+                                  await onRenameCategory(cat, newName);
+                                }
+                              }
+                              if (e.key === "Escape") {
+                                setEditingCategory(null);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <h3 onDoubleClick={() => { setEditingCategory(`${cat}::incomplete`); setCategoryEditValue(cat); }}>{cat}</h3>
+                        )}
                         <button
                           className={`deleteButton ${styles.deleteCategoryButton}`}
                           title="Delete category"
@@ -205,7 +252,35 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
         {categoryOrder.map((cat: string) => (
           <div key={cat} className={styles.categoryColumn}>
             <div className={styles.categoryHeader}>
-              <h3>{cat}</h3>
+              {editingCategory === `${cat}::complete` ? (
+                <input
+                  ref={inputRef}
+                  className={styles.categoryEditInput}
+                  value={categoryEditValue}
+                  onChange={(e) => setCategoryEditValue(e.target.value)}
+                  onBlur={async () => {
+                    const newName = categoryEditValue.trim();
+                    setEditingCategory(null);
+                    if (newName && newName !== cat && onRenameCategory) {
+                      await onRenameCategory(cat, newName);
+                    }
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      const newName = categoryEditValue.trim();
+                      setEditingCategory(null);
+                      if (newName && newName !== cat && onRenameCategory) {
+                        await onRenameCategory(cat, newName);
+                      }
+                    }
+                    if (e.key === "Escape") {
+                      setEditingCategory(null);
+                    }
+                  }}
+                />
+              ) : (
+                <h3 onDoubleClick={() => { setEditingCategory(`${cat}::complete`); setCategoryEditValue(cat); }}>{cat}</h3>
+              )}
             </div>
             <ul className={styles.categoryList}>
               {completeByCategory[cat]?.map(task => (

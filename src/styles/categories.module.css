@@ -18,6 +18,14 @@
   justify-content: space-between;
 }
 
+.dragHandle {
+  cursor: grab;
+  margin-right: 8px;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+}
+
 .categoryList {
   margin: 0;
   padding: 0;
@@ -29,7 +37,7 @@
   padding: 4px 0;
   border: #555 1px solid;
   border-radius: 4px;
-  padding: 4;
+  padding: 4px;
 }
 
 .completedCategoryColumn {
@@ -56,4 +64,12 @@
 
 .timeAllocated {
   font-size: 0.9em;
+}
+
+.categoryEditInput {
+  width: calc(100% - 48px);
+  padding: 6px 8px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
