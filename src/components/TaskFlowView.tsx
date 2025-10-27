@@ -9,6 +9,7 @@ interface TaskFlowViewProps {
   projectId: string;
   edges: Edge[];
   setEdges: (edges: Edge[]) => void;
+  onNodeDoubleClick?: (taskId: string) => void;
 }
 
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
@@ -16,7 +17,7 @@ import { app } from "../firebase/config";
 
 const db = getFirestore(app);
 
-const TaskFlowView: React.FC<TaskFlowViewProps> = ({ tasks, projectId, edges, setEdges }) => {
+const TaskFlowView: React.FC<TaskFlowViewProps> = ({ tasks, projectId, edges, setEdges, onNodeDoubleClick }) => {
   // Handler to update a task's position in Firestore
   const handleNodePositionChange = async (taskId: string, position: { x: number; y: number }) => {
     if (!projectId) return;
@@ -31,6 +32,7 @@ const TaskFlowView: React.FC<TaskFlowViewProps> = ({ tasks, projectId, edges, se
         edges={edges}
         setEdges={setEdges}
         onNodePositionChange={handleNodePositionChange}
+        onNodeDoubleClick={onNodeDoubleClick}
       />
     </div>
   );

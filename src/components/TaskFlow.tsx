@@ -32,13 +32,14 @@ interface TaskFlowProps {
   tasks: Task[];
   edges: Edge[];
   setEdges: (edges: Edge[]) => void;
+  onNodeDoubleClick?: (taskId: string) => void;
   onNodePositionChange?: (taskId: string, position: { x: number; y: number }) => void;
 }
 
 const nodeWidth = 180;
 const nodeHeight = 60;
 
-export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNodePositionChange }) => {
+export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNodeDoubleClick, onNodePositionChange }) => {
   // Map tasks to nodes
 
   // Build initial nodes from tasks
@@ -110,6 +111,11 @@ export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNo
         edges={coloredEdges}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
+        onNodeDoubleClick={(event, node) => {
+          if (node && typeof node.id === 'string' && onNodeDoubleClick) {
+            onNodeDoubleClick(String(node.id));
+          }
+        }}
         fitView
         minZoom={0.2}
         maxZoom={2}

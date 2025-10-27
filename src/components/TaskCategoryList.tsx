@@ -172,6 +172,7 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                     <div
                       ref={dragProvided.innerRef}
                       {...dragProvided.draggableProps}
+                      {...dragProvided.dragHandleProps}
                       className={[
                         styles.categoryColumn,
                         dragSnapshot.isDragging ? styles.categoryColumnDragging : ""
@@ -179,10 +180,6 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                       style={dragProvided.draggableProps.style}
                     >
                       <div className={styles.categoryHeader}>
-                        {/* drag handle placed on a small target so double-click on the title still works */}
-                        <span {...dragProvided.dragHandleProps} className={styles.dragHandle} aria-hidden>
-                          ☰
-                        </span>
 
                         {editingCategory === `${cat}::incomplete` ? (
                           <input
@@ -211,7 +208,12 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                             }}
                           />
                         ) : (
-                          <h3 onDoubleClick={() => { setEditingCategory(`${cat}::incomplete`); setCategoryEditValue(cat); }}>{cat}</h3>
+                          <h3
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => { e.stopPropagation(); setEditingCategory(`${cat}::incomplete`); setCategoryEditValue(cat); }}
+                          >
+                            {cat}
+                          </h3>
                         )}
                         <button
                           className={`deleteButton ${styles.deleteCategoryButton}`}
@@ -250,7 +252,7 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
       <h2>Completed Tasks</h2>
       <div className={styles.completedCategoriesRow}>
         {categoryOrder.map((cat: string) => (
-          <div key={cat} className={styles.categoryColumn}>
+            <div key={cat} className={styles.categoryColumn}>
             <div className={styles.categoryHeader}>
               {editingCategory === `${cat}::complete` ? (
                 <input
@@ -279,7 +281,12 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                   }}
                 />
               ) : (
-                <h3 onDoubleClick={() => { setEditingCategory(`${cat}::complete`); setCategoryEditValue(cat); }}>{cat}</h3>
+                <h3
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => { e.stopPropagation(); setEditingCategory(`${cat}::complete`); setCategoryEditValue(cat); }}
+                >
+                  {cat}
+                </h3>
               )}
             </div>
             <ul className={styles.categoryList}>
