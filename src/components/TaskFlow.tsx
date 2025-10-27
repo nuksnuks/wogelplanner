@@ -116,6 +116,18 @@ export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNo
             onNodeDoubleClick(String(node.id));
           }
         }}
+        onEdgeDoubleClick={(_event, edge) => {
+          if (edge && typeof edge.id === 'string') {
+            // remove the edge locally
+            setEdges(edges.filter(e => e.id !== edge.id));
+          }
+        }}
+        onEdgesDelete={(removed) => {
+          if (Array.isArray(removed) && removed.length > 0) {
+            const removedIds = new Set(removed.map(r => r.id));
+            setEdges(edges.filter(e => !removedIds.has(e.id)));
+          }
+        }}
         fitView
         minZoom={0.2}
         maxZoom={2}
