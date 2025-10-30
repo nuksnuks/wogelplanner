@@ -6,7 +6,6 @@ import { getFirestore, collection, addDoc, query, onSnapshot, doc, updateDoc, de
 import { app } from "../../firebase/config";
 import TaskCreationForm from "../../components/TaskCreationForm";
 import TaskCategoryList from "../../components/TaskCategoryList";
-// import TaskFlowView from "../components/TaskFlowView";
 import PendingInvitesList from "../../components/PendingInvitesList";
 import CollaboratorsList from "../../components/CollaboratorsList";
 import InviteForm from "../../components/InviteForm";
@@ -14,6 +13,7 @@ import BackButton from "@/components/BackButton";
 
 import headerStyles from "../../styles/header.module.css";
 import styles from "../../styles/overview.module.css";
+import projectStyles from "../../styles/project.module.css";
 
 const db = getFirestore(app);
 
@@ -24,6 +24,8 @@ type Task = {
   category: string;
   completed: boolean;
   position?: { x: number; y: number };
+  allocatedTimeMs?: number;
+  manualAllocation?: boolean;
 };
 
 const ProjectPage: React.FC = () => {
@@ -276,6 +278,131 @@ const ProjectPage: React.FC = () => {
       else setError(String(err));
     }
   };
+
+  // Adjust allocation for a task by deltaMs (positive increases allocation)
+  const adjustTaskAllocation = async (taskId: string, deltaMs: number) => {
+    if (!projectId || !kickoffDate || !deadlineDate) return;
+    // compute category total ms
+    const totalMs = deadlineDate.getTime() - kickoffDate.getTime();
+    const categoryMs = totalMs / allCategories.length;
+
+    // find task and tasks in same category
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const cat = task.category;
+    const tasksInCat = tasks.filter(t => t.category === cat);
+    if (tasksInCat.length === 0) return;
+
+    // helper to get current allocated (fallback to computed default)
+    const defaultPerTask = (categoryMs / tasksInCat.length);
+    const getAllocated = (t: Task) => (typeof t.allocatedTimeMs === 'number' ? t.allocatedTimeMs as number : defaultPerTask);
+
+    // Build current allocations (use persisted when present, else defaultPerTask)
+    const minAlloc = 60 * 1000; // 1 minute
+    const currentAlloc: { [id: string]: number } = {};
+    let sumCurrent = 0;
+    for (const t of tasksInCat) {
+      const a = typeof t.allocatedTimeMs === 'number' ? t.allocatedTimeMs : defaultPerTask;
+      currentAlloc[t.id] = Math.max(minAlloc, a);
+      sumCurrent += currentAlloc[t.id];
+    }
+
+    // Desired target allocation
+    const desiredTarget = Math.max(minAlloc, currentAlloc[taskId] + deltaMs);
+    const deltaApplied = desiredTarget - currentAlloc[taskId];
+
+    // If no change, bail
+    if (Math.abs(deltaApplied) < 1) return;
+
+    // Start from currentAlloc and apply desiredTarget to target
+    const allocations: { [id: string]: number } = { ...currentAlloc };
+    allocations[taskId] = desiredTarget;
+
+    // Compute how much we need to remove from others to fit categoryMs
+    const totalAfter = Object.values(allocations).reduce((s, v) => s + v, 0);
+    let removeAmount = Math.max(0, totalAfter - categoryMs);
+
+    // Prefer to remove from non-manual tasks first (excluding target)
+    const adjustableIds = tasksInCat.filter(t => t.id !== taskId && !t.manualAllocation).map(t => t.id);
+
+    // Helper: attempt to remove `amount` from ids array, respecting minAlloc
+    const removeFromIds = (ids: string[], amount: number) => {
+      let remaining = amount;
+      let candidates = [...ids];
+      while (remaining > 0 && candidates.length > 0) {
+        const per = remaining / candidates.length;
+        let reduced = 0;
+        const nextCandidates: string[] = [];
+        for (const id of candidates) {
+          const canReduce = Math.max(0, allocations[id] - minAlloc);
+          const take = Math.min(canReduce, per);
+          allocations[id] -= take;
+          reduced += take;
+          if (allocations[id] - minAlloc > 0.5) nextCandidates.push(id);
+        }
+        if (reduced === 0) break;
+        remaining -= reduced;
+        candidates = nextCandidates;
+      }
+      return remaining;
+    };
+
+    // Remove from adjustable non-manual tasks
+    if (removeAmount > 0 && adjustableIds.length > 0) {
+      removeAmount = removeFromIds(adjustableIds, removeAmount);
+    }
+
+    // If still need to remove, take from other manual tasks (excluding target) proportionally down to minAlloc
+    if (removeAmount > 0) {
+      const manualIds = tasksInCat.filter(t => t.id !== taskId && t.manualAllocation).map(t => t.id);
+      if (manualIds.length > 0) {
+        // total reducible from manual
+        let totalReducible = 0;
+        for (const id of manualIds) totalReducible += Math.max(0, allocations[id] - minAlloc);
+        const toRemove = Math.min(removeAmount, totalReducible);
+        if (toRemove > 0 && totalReducible > 0) {
+          for (const id of manualIds) {
+            const can = Math.max(0, allocations[id] - minAlloc);
+            const take = (can / totalReducible) * toRemove;
+            allocations[id] -= take;
+            removeAmount -= take;
+          }
+        }
+      }
+    }
+
+    // If still need to remove, clamp the target down
+    if (removeAmount > 0) {
+      allocations[taskId] = Math.max(minAlloc, allocations[taskId] - removeAmount);
+      removeAmount = 0;
+    }
+
+    // As a safety, ensure no allocations are NaN and sum does not exceed categoryMs (fix minor float diffs)
+    for (const id of Object.keys(allocations)) if (!Number.isFinite(allocations[id])) allocations[id] = minAlloc;
+    const finalSum = Object.values(allocations).reduce((s, v) => s + v, 0);
+    if (finalSum > categoryMs) {
+      // scale non-target allocations slightly to fit
+      const excess = finalSum - categoryMs;
+      const nonTargetIds = Object.keys(allocations).filter(id => id !== taskId);
+      const per = excess / nonTargetIds.length;
+      for (const id of nonTargetIds) allocations[id] = Math.max(minAlloc, allocations[id] - per);
+    }
+
+    // Commit batch
+    try {
+      const batch = writeBatch(db);
+      for (const t of tasksInCat) {
+        const ref = doc(db, "projects", String(projectId), "tasks", t.id);
+        const updateData: any = { allocatedTimeMs: allocations[t.id] };
+        if (t.id === taskId) updateData.manualAllocation = true;
+        batch.update(ref, updateData);
+      }
+      await batch.commit();
+    } catch (err) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    }
+  };
   
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,6 +456,110 @@ const ProjectPage: React.FC = () => {
     return () => unsub();
   }, [projectId]);
 
+  // Keep a ref of previous counts so we can detect when a new task is added to a category
+  const prevCategoryCountsRef = React.useRef<Record<string, number>>({});
+
+  // Recalculate allocations for a category when tasks are added
+  const recalcCategoryAllocations = async (cat: string) => {
+    if (!projectId || !kickoffDate || !deadlineDate) return;
+    const tasksInCat = tasksByCategory[cat] || [];
+    const totalMs = deadlineDate.getTime() - kickoffDate.getTime();
+    const categoryMs = totalMs / allCategories.length;
+    const minAlloc = 60 * 1000;
+
+    // Determine manual tasks and their allocations
+    const manualTasks = tasksInCat.filter(t => t.manualAllocation);
+    let sumManual = 0;
+    const manualMap: { [id: string]: number } = {};
+    for (const t of manualTasks) {
+      const a = typeof t.allocatedTimeMs === 'number' ? t.allocatedTimeMs as number : Math.max(minAlloc, categoryMs / tasksInCat.length);
+      manualMap[t.id] = Math.max(minAlloc, a);
+      sumManual += manualMap[t.id];
+    }
+
+    const allocations: { [id: string]: number } = {};
+
+    // If manual allocations already exceed category pool, scale them down proportionally (respecting minAlloc)
+    if (sumManual >= categoryMs) {
+      const reducibleTotal = Math.max(0, sumManual - (minAlloc * manualTasks.length));
+      if (reducibleTotal <= 0) {
+        // fallback: set everyone to minAlloc evenly (edge case)
+        for (const t of tasksInCat) allocations[t.id] = minAlloc;
+      } else {
+        const scale = (categoryMs - (minAlloc * manualTasks.length)) / (sumManual - (minAlloc * manualTasks.length) || 1);
+        for (const t of tasksInCat) {
+          if (t.manualAllocation) {
+            const raw = manualMap[t.id];
+            const scaled = Math.max(minAlloc, minAlloc + (raw - minAlloc) * scale);
+            allocations[t.id] = scaled;
+          }
+        }
+        // If any non-manual tasks exist, give them minAlloc
+        for (const t of tasksInCat) if (!allocations[t.id]) allocations[t.id] = minAlloc;
+      }
+    } else {
+      // Normal case: preserve manual allocations, distribute remaining evenly among non-manual tasks
+      const remaining = Math.max(0, categoryMs - sumManual);
+      const nonManual = tasksInCat.filter(t => !t.manualAllocation);
+      const per = nonManual.length > 0 ? remaining / nonManual.length : 0;
+      for (const t of tasksInCat) {
+        if (t.manualAllocation) allocations[t.id] = manualMap[t.id];
+        else allocations[t.id] = Math.max(minAlloc, per);
+      }
+    }
+
+    // Commit allocations in a batch
+    try {
+      const batch = writeBatch(db);
+      for (const t of tasksInCat) {
+        const ref = doc(db, "projects", String(projectId), "tasks", t.id);
+        batch.update(ref, { allocatedTimeMs: allocations[t.id] });
+      }
+      await batch.commit();
+    } catch (err) {
+      console.error('recalcCategoryAllocations commit failed', err);
+    }
+  };
+
+  // Reset allocations for a category: evenly divide the category time among all tasks and clear manualAllocation
+  const resetCategoryAllocation = async (cat: string) => {
+    if (!projectId || !kickoffDate || !deadlineDate) return;
+    const tasksInCat = tasksByCategory[cat] || [];
+    if (tasksInCat.length === 0) return;
+    const totalMs = deadlineDate.getTime() - kickoffDate.getTime();
+    const categoryMs = totalMs / allCategories.length;
+    const minAlloc = 60 * 1000;
+    const perTask = Math.max(minAlloc, categoryMs / tasksInCat.length);
+
+    try {
+      const batch = writeBatch(db);
+      for (const t of tasksInCat) {
+        const ref = doc(db, "projects", String(projectId), "tasks", t.id);
+        batch.update(ref, { allocatedTimeMs: perTask, manualAllocation: false });
+      }
+      await batch.commit();
+    } catch (err) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    }
+  };
+
+  // Detect when task counts per category change (new tasks added) and trigger recalculation
+  useEffect(() => {
+    const currentCounts: Record<string, number> = {};
+    for (const cat of Object.keys(tasksByCategory)) currentCounts[cat] = tasksByCategory[cat].length;
+    const prev = prevCategoryCountsRef.current || {};
+    for (const cat of Object.keys(currentCounts)) {
+      const prevCount = prev[cat] || 0;
+      const curCount = currentCounts[cat];
+      if (curCount > prevCount) {
+        // new task(s) added to this category -> recalc
+        recalcCategoryAllocations(cat);
+      }
+    }
+    prevCategoryCountsRef.current = currentCounts;
+  }, [tasksByCategory, kickoffDate, deadlineDate, allCategories, projectId]);
+
   // Calculate durations with useMemo
   const taskDurations = React.useMemo(() => {
     if (!kickoffDate || !deadlineDate || allCategories.length === 0) return {};
@@ -347,6 +578,20 @@ const ProjectPage: React.FC = () => {
     });
     return result;
   }, [kickoffDate, deadlineDate, allCategories, tasksByCategory]);
+
+  // Compute sequential category date spans (categories executed in sequence)
+  const categorySpans = React.useMemo(() => {
+    if (!kickoffDate || !deadlineDate || effectiveCategoryOrder.length === 0) return {} as Record<string, { start: Date; end: Date }>;
+    const totalMs = deadlineDate.getTime() - kickoffDate.getTime();
+    const per = totalMs / effectiveCategoryOrder.length;
+    const result: Record<string, { start: Date; end: Date }> = {};
+    effectiveCategoryOrder.forEach((cat, i) => {
+      const start = new Date(kickoffDate.getTime() + Math.round(i * per));
+      const end = new Date(kickoffDate.getTime() + Math.round((i + 1) * per));
+      result[cat] = { start, end };
+    });
+    return result;
+  }, [kickoffDate, deadlineDate, effectiveCategoryOrder]);
 
   // Handler to update task status (e.g., mark as complete)
   const handleUpdateTaskStatus = async (taskId: string, completed: boolean) => {
@@ -443,7 +688,7 @@ const ProjectPage: React.FC = () => {
               )}
             </h1>
 
-            <div style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 4 }}>
+            <div className={projectStyles.metadata}>
               <div onDoubleClick={() => startEditProjectField("kickoff", kickoffDate ? kickoffDate.toISOString().slice(0,10) : "")}>
                 <strong>Kickoff:</strong>{" "}
                 {editingProjectField === "kickoff" ? (
@@ -481,6 +726,11 @@ const ProjectPage: React.FC = () => {
              onRenameCategory={renameCategory}
              onUpdateTaskStatus={handleUpdateTaskStatus}
              onDeleteTask={handleDeleteTask}
+             onAdjustAllocation={adjustTaskAllocation}
+              onResetCategoryAllocation={resetCategoryAllocation}
+              categorySpans={categorySpans}
+              kickoffDate={kickoffDate}
+              deadlineDate={deadlineDate}
              taskDurations={taskDurations}
              projectId={String(projectId)}
  

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import TaskDetailsModal from "./TaskDetailsModal";
+import TimelineBar from "./TimelineBar";
+import CategoryHeader from "./CategoryHeader";
+import TaskItem from "./TaskItem";
 import styles from "../styles/categories.module.css";
 
 type Task = {
@@ -10,6 +13,8 @@ type Task = {
   category: string;
   completed: boolean;
   position?: { x: number; y: number };
+  allocatedTimeMs?: number;
+  manualAllocation?: boolean;
 };
 
 type TaskCategoryListProps = {
@@ -17,9 +22,14 @@ type TaskCategoryListProps = {
   categoryOrder: string[];
   onCategoryOrderChange: (newOrder: string[]) => void;
   onRenameCategory?: (oldName: string, newName: string) => Promise<void> | void;
+  onAdjustAllocation?: (taskId: string, deltaMs: number) => void;
+  onResetCategoryAllocation?: (category: string) => void;
   onUpdateTaskStatus?: (taskId: string, completed: boolean) => void;
   onDeleteTask?: (taskId: string) => void;
   taskDurations?: { [cat: string]: { [taskId: string]: number } };
+  categorySpans?: { [cat: string]: { start: Date; end: Date } | null };
+  kickoffDate?: Date | null;
+  deadlineDate?: Date | null;
   projectId: string;
 };
 
@@ -27,7 +37,7 @@ import { getFirestore, writeBatch, doc } from "firebase/firestore";
 
 
 const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
-  const { tasksByCategory, categoryOrder, onCategoryOrderChange, onUpdateTaskStatus, onDeleteTask, taskDurations, projectId, onRenameCategory } = props;
+  const { tasksByCategory, categoryOrder, onCategoryOrderChange, onUpdateTaskStatus, onDeleteTask, taskDurations, projectId, onRenameCategory, onAdjustAllocation, onResetCategoryAllocation, categorySpans, kickoffDate, deadlineDate } = props;
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [categoryEditValue, setCategoryEditValue] = useState<string>("");
@@ -131,7 +141,7 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
     // Find updated task across all categories
     let updated: Task | undefined;
     for (const cat of Object.keys(tasksByCategory)) {
-      const found = tasksByCategory[cat].find(t => t.id === selectedTask.id);
+      const found = tasksByCategory[cat].find((t: Task) => t.id === selectedTask.id);
       if (found) {
         updated = found;
         break;
@@ -156,6 +166,14 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
 
   return (
     <>
+  <TimelineBar
+        start={kickoffDate}
+        end={deadlineDate}
+        categorySpans={categorySpans}
+        categoryOrder={categoryOrder}
+        tasksByCategory={tasksByCategory}
+        taskDurations={taskDurations}
+      />
       <h2>To do</h2>
       {categoryOrder.length === 0 && <p>No tasks yet.</p>}
       <DragDropContext onDragEnd={onDragEnd}>
@@ -179,65 +197,35 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
                       ].join(" ")}
                       style={dragProvided.draggableProps.style}
                     >
-                      <div className={styles.categoryHeader}>
-
-                        {editingCategory === `${cat}::incomplete` ? (
-                          <input
-                            ref={inputRef}
-                            className={styles.categoryEditInput}
-                            value={categoryEditValue}
-                            onChange={(e) => setCategoryEditValue(e.target.value)}
-                            onBlur={async () => {
-                              const newName = categoryEditValue.trim();
-                              setEditingCategory(null);
-                              if (newName && newName !== cat && onRenameCategory) {
-                                await onRenameCategory(cat, newName);
-                              }
-                            }}
-                            onKeyDown={async (e) => {
-                              if (e.key === "Enter") {
-                                const newName = categoryEditValue.trim();
-                                setEditingCategory(null);
-                                if (newName && newName !== cat && onRenameCategory) {
-                                  await onRenameCategory(cat, newName);
-                                }
-                              }
-                              if (e.key === "Escape") {
-                                setEditingCategory(null);
-                              }
-                            }}
-                          />
-                        ) : (
-                          <h3
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onDoubleClick={(e) => { e.stopPropagation(); setEditingCategory(`${cat}::incomplete`); setCategoryEditValue(cat); }}
-                          >
-                            {cat}
-                          </h3>
-                        )}
-                        <button
-                          className={`deleteButton ${styles.deleteCategoryButton}`}
-                          title="Delete category"
-                          onClick={() => handleDeleteCategory(cat)}
-                        >
-                          🗑
-                        </button>
-                      </div>
+                      <CategoryHeader
+                        cat={cat}
+                        variant="incomplete"
+                        editingCategory={editingCategory}
+                        categoryEditValue={categoryEditValue}
+                        inputRef={inputRef}
+                        setEditingCategory={setEditingCategory}
+                        setCategoryEditValue={setCategoryEditValue}
+                        onRenameCategory={onRenameCategory}
+                        onDeleteCategory={handleDeleteCategory}
+                        onResetCategoryAllocation={onResetCategoryAllocation}
+                        categorySpan={categorySpans ? categorySpans[cat] : undefined}
+                      />
                       <ul className={styles.categoryList}>
-                        {incompleteByCategory[cat]?.map(task => (
-                          <div 
-                            key={task.id} 
-                            className={styles.categoryTaskItem} 
-                            onClick={() => setSelectedTask(task)}
-                          >
-                            <strong>{task.title}</strong>
-                            {taskDurations && taskDurations[cat] && typeof taskDurations[cat][task.id] === 'number' && (
-                              <div className={styles.timeAllocated}>
-                                max time for task: {formatDuration(taskDurations[cat][task.id])}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                        {incompleteByCategory[cat]?.map(task => {
+                          const allocated = typeof task.allocatedTimeMs === 'number'
+                            ? task.allocatedTimeMs
+                            : (taskDurations && task.category && taskDurations[task.category]?.[task.id]
+                              ? taskDurations[task.category][task.id]
+                              : undefined);
+                          return (
+                            <TaskItem
+                              key={task.id}
+                              task={task}
+                              allocated={allocated}
+                              onClick={() => setSelectedTask(task)}
+                            />
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -252,49 +240,31 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
       <h2>Completed Tasks</h2>
       <div className={styles.completedCategoriesRow}>
         {categoryOrder.map((cat: string) => (
-            <div key={cat} className={styles.categoryColumn}>
-            <div className={styles.categoryHeader}>
-              {editingCategory === `${cat}::complete` ? (
-                <input
-                  ref={inputRef}
-                  className={styles.categoryEditInput}
-                  value={categoryEditValue}
-                  onChange={(e) => setCategoryEditValue(e.target.value)}
-                  onBlur={async () => {
-                    const newName = categoryEditValue.trim();
-                    setEditingCategory(null);
-                    if (newName && newName !== cat && onRenameCategory) {
-                      await onRenameCategory(cat, newName);
-                    }
-                  }}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter") {
-                      const newName = categoryEditValue.trim();
-                      setEditingCategory(null);
-                      if (newName && newName !== cat && onRenameCategory) {
-                        await onRenameCategory(cat, newName);
-                      }
-                    }
-                    if (e.key === "Escape") {
-                      setEditingCategory(null);
-                    }
-                  }}
-                />
-              ) : (
-                <h3
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onDoubleClick={(e) => { e.stopPropagation(); setEditingCategory(`${cat}::complete`); setCategoryEditValue(cat); }}
-                >
-                  {cat}
-                </h3>
-              )}
-            </div>
+          <div key={cat} className={styles.categoryColumn}>
+            <CategoryHeader
+              cat={cat}
+              variant="complete"
+              editingCategory={editingCategory}
+              categoryEditValue={categoryEditValue}
+              inputRef={inputRef}
+              setEditingCategory={setEditingCategory}
+              setCategoryEditValue={setCategoryEditValue}
+              onRenameCategory={onRenameCategory}
+              onDeleteCategory={handleDeleteCategory}
+              onResetCategoryAllocation={onResetCategoryAllocation}
+              categorySpan={categorySpans ? categorySpans[cat] : undefined}
+            />
             <ul className={styles.categoryList}>
-              {completeByCategory[cat]?.map(task => (
-                <li key={task.id} className={styles.categoryTaskItem} onClick={() => setSelectedTask(task)}>
-                  <strong>{task.title}</strong>
-                </li>
-              ))}
+              {completeByCategory[cat]?.map(task => {
+                const allocated = typeof task.allocatedTimeMs === 'number'
+                  ? task.allocatedTimeMs
+                  : (taskDurations && task.category && taskDurations[task.category]?.[task.id]
+                    ? taskDurations[task.category][task.id]
+                    : undefined);
+                return (
+                  <TaskItem key={task.id} task={task} allocated={allocated} onClick={() => setSelectedTask(task)} />
+                );
+              })}
             </ul>
           </div>
         ))}
@@ -307,12 +277,15 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
           onUpdateStatus={handleUpdateStatus}
           onDeleteTask={handleDeleteTask}
           allocatedTimeMs={
-            taskDurations && selectedTask.category && taskDurations[selectedTask.category]?.[selectedTask.id]
-              ? taskDurations[selectedTask.category][selectedTask.id]
-              : undefined
+            typeof selectedTask.allocatedTimeMs === 'number'
+              ? selectedTask.allocatedTimeMs
+              : (taskDurations && selectedTask.category && taskDurations[selectedTask.category]?.[selectedTask.id]
+                ? taskDurations[selectedTask.category][selectedTask.id]
+                : undefined)
           }
           projectId={props.projectId}
           categories={categoryOrder}
+          onAdjustAllocation={onAdjustAllocation}
         />
       )}
     </>
