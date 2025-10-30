@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import styles from "../styles/categories.module.css";
 
 type CategorySpan = { start: Date; end: Date };
@@ -11,10 +11,14 @@ type Props = {
   tasksByCategory?: Record<string, TaskLike[]>;
   // optional precomputed durations to use as fallback when task.allocatedTimeMs is missing
   taskDurations?: Record<string, Record<string, number>>;
+  // callbacks: open task details and adjust allocation (delta in ms)
+  onOpenTask?: (taskId: string) => void;
+  onAdjustAllocation?: (taskId: string, deltaMs: number) => void;
 };
 
-export default function TimelineBar({ start, end, categorySpans, categoryOrder, tasksByCategory, taskDurations }: Props) {
+export default function TimelineBar({ start, end, categorySpans, categoryOrder, tasksByCategory, taskDurations, onOpenTask, onAdjustAllocation }: Props) {
   if (!start || !end) return null;
+  const allocationBarRef = useRef<HTMLDivElement | null>(null);
   const startMs = start.getTime();
   const endMs = end.getTime();
   if (!(startMs < endMs)) return null;
@@ -23,6 +27,37 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
   const total = endMs - startMs;
   const clampedNow = Math.min(Math.max(now, startMs), endMs);
   const todayPct = ((clampedNow - startMs) / total) * 100;
+
+  // Attach a non-passive wheel listener on the allocation bar container so we can call preventDefault.
+  useEffect(() => {
+    if (!onAdjustAllocation) return;
+    const el = allocationBarRef.current;
+    if (!el) return;
+    const handler = (ev: WheelEvent) => {
+      try {
+        // find closest task segment with data-taskid
+        const target = (ev.target as HTMLElement).closest('[data-taskid]') as HTMLElement | null;
+        if (!target) return;
+        const taskId = target.getAttribute('data-taskid');
+        if (!taskId) return;
+        // prevent default scroll
+        ev.preventDefault();
+        ev.stopPropagation();
+        const baseStep = 15 * 60 * 1000; // 15 minutes
+        let step = baseStep;
+        if (ev.shiftKey) step = 60 * 60 * 1000; // 1 hour
+        if (ev.ctrlKey || ev.metaKey) step = 60 * 1000; // 1 minute
+        if (ev.altKey) step = 24 * 60 * 60 * 1000; // 1 day
+        const deltaMs = -Math.sign(ev.deltaY) * (step * 20);
+        onAdjustAllocation(taskId, deltaMs);
+      } catch (err) {
+        // swallow
+      }
+    };
+    // usePassive: false to allow preventDefault
+    el.addEventListener('wheel', handler as EventListener, { passive: false });
+    return () => el.removeEventListener('wheel', handler as EventListener);
+  }, [allocationBarRef, onAdjustAllocation]);
 
   // Build marker positions for categories
   const markers: { id: string; pct: number }[] = [];
@@ -80,8 +115,8 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
       {/* Allocation bar: shows per-task allocation within each category span */}
       <div className={styles.timelineContainer} aria-hidden style={{ marginTop: 8 }}>
         <div className={styles.timelineRange} />
-        <div className={styles.timelineBarWrap}>
-          <div className={styles.allocationBar}>
+      <div className={styles.timelineBarWrap}>
+        <div className={styles.allocationBar} ref={allocationBarRef}>
             {categoryOrder && categoryOrder.length > 0 && categorySpans && categoryOrder.map(id => {
               const span = categorySpans[id];
               if (!span) return null;
@@ -113,9 +148,11 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
                       return (
                         <div
                           key={a.id}
+                          data-taskid={a.id}
                           className={styles.allocationTaskSegment}
                           style={{ width: `${pct}%`, background: bg }}
                           title={`${a.title || a.id}: ${a.ms ? msToHuman(a.ms) : '—'}`}
+                          onDoubleClick={() => onOpenTask && onOpenTask(a.id)}
                         />
                       );
                     })}

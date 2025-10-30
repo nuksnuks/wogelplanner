@@ -201,3 +201,6 @@
   transform: translateY(-3px);
   opacity: 0.95;
 }
+.allocationTaskSegment {
+  cursor: pointer;
+}

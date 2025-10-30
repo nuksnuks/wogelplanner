@@ -173,6 +173,17 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
         categoryOrder={categoryOrder}
         tasksByCategory={tasksByCategory}
         taskDurations={taskDurations}
+        onAdjustAllocation={onAdjustAllocation}
+        onOpenTask={(taskId: string) => {
+          // find the task across categories and open it in the modal
+          for (const cat of Object.keys(tasksByCategory)) {
+            const found = tasksByCategory[cat].find(t => t.id === taskId);
+            if (found) {
+              setSelectedTask(found);
+              return;
+            }
+          }
+        }}
       />
       <h2>To do</h2>
       {categoryOrder.length === 0 && <p>No tasks yet.</p>}
