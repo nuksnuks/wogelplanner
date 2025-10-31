@@ -17,18 +17,8 @@ type Props = {
 };
 
 export default function TimelineBar({ start, end, categorySpans, categoryOrder, tasksByCategory, taskDurations, onOpenTask, onAdjustAllocation }: Props) {
-  if (!start || !end) return null;
+  // hooks must be called unconditionally
   const allocationBarRef = useRef<HTMLDivElement | null>(null);
-  const startMs = start.getTime();
-  const endMs = end.getTime();
-  if (!(startMs < endMs)) return null;
-
-  const now = Date.now();
-  const total = endMs - startMs;
-  const clampedNow = Math.min(Math.max(now, startMs), endMs);
-  const todayPct = ((clampedNow - startMs) / total) * 100;
-
-  // Attach a non-passive wheel listener on the allocation bar container so we can call preventDefault.
   useEffect(() => {
     if (!onAdjustAllocation) return;
     const el = allocationBarRef.current;
@@ -57,7 +47,17 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
     // usePassive: false to allow preventDefault
     el.addEventListener('wheel', handler as EventListener, { passive: false });
     return () => el.removeEventListener('wheel', handler as EventListener);
-  }, [allocationBarRef, onAdjustAllocation]);
+  }, [onAdjustAllocation]);
+
+  if (!start || !end) return null;
+  const startMs = start.getTime();
+  const endMs = end.getTime();
+  if (!(startMs < endMs)) return null;
+
+  const now = Date.now();
+  const total = endMs - startMs;
+  const clampedNow = Math.min(Math.max(now, startMs), endMs);
+  const todayPct = ((clampedNow - startMs) / total) * 100;
 
   // Build marker positions for categories
   const markers: { id: string; pct: number }[] = [];
