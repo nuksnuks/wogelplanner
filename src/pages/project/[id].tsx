@@ -393,8 +393,8 @@ const ProjectPage: React.FC = () => {
       const batch = writeBatch(db);
       for (const t of tasksInCat) {
         const ref = doc(db, "projects", String(projectId), "tasks", t.id);
-        const updateData: any = { allocatedTimeMs: allocations[t.id] };
-        if (t.id === taskId) updateData.manualAllocation = true;
+  const updateData: { allocatedTimeMs: number; manualAllocation?: boolean } = { allocatedTimeMs: allocations[t.id] };
+  if (t.id === taskId) updateData.manualAllocation = true;
         batch.update(ref, updateData);
       }
       await batch.commit();
