@@ -1,4 +1,8 @@
 import React from "react";
+import styles from "../styles/modal.module.css";
+
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 type Task = {
   id: string;
@@ -20,9 +24,6 @@ type TaskDetailsModalProps = {
 };
 
 
-import styles from "../styles/modal.module.css";
-import { doc, updateDoc, getFirestore } from "firebase/firestore";
-const db = getFirestore();
 
 const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose, onUpdateStatus, onDeleteTask, allocatedTimeMs, projectId, categories, onAdjustAllocation }) => {
   const [editField, setEditField] = React.useState<null | "title" | "description" | "category">(null);

@@ -7,7 +7,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     <>
       <Head>
         {/* SVG favicon (modern browsers) */}
-        <link rel="icon" href="/wogelplanner-logo.svg" />
+        <link rel="icon" href="/wogelplanner-logo.svg"/>
         {/* fallback for browsers expecting /favicon.ico */}
         <link rel="alternate icon" href="/favicon.ico" />
       </Head>
