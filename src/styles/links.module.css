@@ -1,12 +1,2 @@
-.projectLink {
-  color: #224f22;
-  text-decoration: none; /* remove underline */
-  font-weight: 600;
-}
-
-.projectLink:hover,
-.projectLink:focus {
-  color: #186018;
-  text-decoration: underline; /* optional on hover */
-  outline: none;
-}
+ .projectLink { color:var(--foreground); text-decoration:none; font-weight:700; }
+.projectLink:hover { color:var(--accent); text-decoration:underline; text-underline-offset:4px; }

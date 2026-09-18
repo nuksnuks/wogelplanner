@@ -1,3 +1,4 @@
+import ProjectCards from "./ProjectCards";
 type Project = {
   id: string;
   title: string;
@@ -13,13 +14,13 @@ type Props = {
 };
 
 
-import Link from "next/link";
+
 
 
 import { useEffect, useState } from "react";
 import { getProjectCompletion } from "../utils/getProjectCompletion";
-import styles from "../styles/projectsList.module.css";
-import link from "../styles/links.module.css";
+
+
 
 const MyProjectsList: React.FC<Props> = ({ projects }) => {
   const [completion, setCompletion] = useState<{ [id: string]: number }>({});
@@ -32,27 +33,7 @@ const MyProjectsList: React.FC<Props> = ({ projects }) => {
     });
   }, [projects]);
 
-  return (
-    <>
-      <h2>My Projects</h2>
-      <div className={styles.projectList}>
-        {projects.map(p => (
-          <div className={styles.projectItem} key={p.id}>
-            <h3>
-              <Link href={`/project/${p.id}`} className={link.projectLink}>
-                {p.title}
-              </Link>
-            </h3>
-            <span>Deadline: {p.deadline}</span>
-            <br />
-            {typeof completion[p.id] === 'number' && (
-              <span>Completion: {completion[p.id]}%</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
-  );
+  return <ProjectCards projects={projects} completion={completion} />;
 };
 
 export default MyProjectsList;

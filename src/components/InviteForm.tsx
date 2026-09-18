@@ -17,7 +17,7 @@ const InviteForm: React.FC<InviteFormProps> = ({ inviteEmail, setInviteEmail, on
       required
     />
     <button type="submit">Invite</button>
-    {error && <span style={{ color: 'red', marginLeft: 8 }}>{error}</span>}
+    {error && <span style={{ color: 'var(--danger)', marginLeft: 8 }}>{error}</span>}
   </form>
 );
 

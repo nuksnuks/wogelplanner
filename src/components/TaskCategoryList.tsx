@@ -194,6 +194,7 @@ const TaskCategoryList: React.FC<TaskCategoryListProps> = (props) => {
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={styles.incompleteCategoriesRow}
+              data-tour="task-board"
             >
               {categoryOrder.map((cat: string, idx: number) => (
                 <Draggable key={cat} draggableId={cat} index={idx}>

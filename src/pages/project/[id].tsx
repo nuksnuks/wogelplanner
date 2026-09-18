@@ -1,3 +1,4 @@
+import PageTour from "../../components/PageTour";
 import React from "react";
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
@@ -619,7 +620,8 @@ const ProjectPage: React.FC = () => {
 
   return (
     <>
-      <div className={headerStyles.header}>
+      <PageTour page="project" />
+      <div className={headerStyles.header} data-tour="project-actions">
         <BackButton />
         <InviteForm
           inviteEmail={inviteEmail}
@@ -672,7 +674,7 @@ const ProjectPage: React.FC = () => {
          </div>
  
          <div className={styles.projectsSection}>
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 12 }} data-tour="project-details">
             <h1 onDoubleClick={() => startEditProjectField("title", projectTitle)}>
               Project:{" "}
               {editingProjectField === "title" ? (

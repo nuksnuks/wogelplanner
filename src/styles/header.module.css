@@ -1,15 +1,10 @@
-.header {
-  display: flex;
-  justify-content: space-between;
-  padding: 1rem;
-  background-color: -var(--header-background);
-  
-}
+ .header { display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; padding:18px 4%; background:var(--surface); border-bottom:1px solid var(--border); min-height:82px; }
+.logo { height:38px; width:auto; }
+.brand { display:flex; align-items:center; gap:12px; font:800 19px 'Manrope',sans-serif; letter-spacing:-.7px; }
+.header form { margin-bottom:0 !important; max-width:520px; flex:1; }
+.header > button { background:#f1f4ee; color:var(--accent); border-color:var(--border); }
+@media(max-width:600px) { .header { gap:12px; padding:16px 20px; } .header form { order:3; flex-basis:100%; } }
 
-.logo {
-  height: 48px;
-  width: auto;
-  margin-right: 12px;
-  display: inline-block;
-  vertical-align: middle;
+@media (prefers-color-scheme: dark) {
+  .header > button { background:var(--surface-soft); }
 }

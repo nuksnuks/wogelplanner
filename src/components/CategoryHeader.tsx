@@ -1,7 +1,9 @@
 import React from "react";
+import { FiRotateCcw, FiTrash2, FiArrowRight } from "react-icons/fi";
 import styles from "../styles/categories.module.css";
 
 type Props = {
+  formatDate?: (date: Date) => string;
   cat: string;
   variant?: "incomplete" | "complete";
   editingCategory: string | null;
@@ -15,8 +17,10 @@ type Props = {
   categorySpan?: { start: Date; end: Date } | null;
 };
 
+const localDate = (date: Date) => date.toLocaleDateString();
+
 export default function CategoryHeader(props: Props) {
-  const { cat, variant = "incomplete", editingCategory, categoryEditValue, inputRef, setEditingCategory, setCategoryEditValue, onRenameCategory, onDeleteCategory, onResetCategoryAllocation, categorySpan } = props;
+  const { formatDate = localDate, cat, variant = "incomplete", editingCategory, categoryEditValue, inputRef, setEditingCategory, setCategoryEditValue, onRenameCategory, onDeleteCategory, onResetCategoryAllocation, categorySpan } = props;
 
   return (
     <div className={styles.categoryHeader}>
@@ -60,26 +64,28 @@ export default function CategoryHeader(props: Props) {
               <button
                 className={`resetButton ${styles.deleteCategoryButton}`}
                 title="Reset allocations"
+                aria-label="Reset allocations"
                 onClick={() => {
                   if (!onResetCategoryAllocation) return;
                   if (!window.confirm(`Reset allocations for category "${cat}"? This will set every task in the category to an equal share of the category time.`)) return;
                   onResetCategoryAllocation(cat);
                 }}
               >
-                🔄
+                <FiRotateCcw aria-hidden="true" />
               </button>
               <button
                 className={`deleteButton ${styles.deleteCategoryButton}`}
                 title="Delete category"
+                aria-label="Delete category"
                 onClick={() => onDeleteCategory(cat)}
               >
-                🗑
+                <FiTrash2 aria-hidden="true" />
               </button>
             </div>
           </div>
           {categorySpan && (
-            <div style={{ fontSize: '0.85em', color: '#666' }}>
-              {categorySpan.start.toLocaleDateString()} → {categorySpan.end.toLocaleDateString()}
+            <div style={{ fontSize: '0.85em', color: 'var(--muted)' }}>
+              {formatDate(categorySpan.start)} <FiArrowRight aria-label="to" role="img" className="inlineIcon" /> {formatDate(categorySpan.end)}
             </div>
           )}
         </div>

@@ -1,0 +1,5 @@
+.preview { margin:0; min-width:0; width:100%; }
+.caption { display:flex; justify-content:space-between; gap:12px; margin-bottom:16px; color:var(--muted); font-size:10px; }
+.caption > span:first-child { letter-spacing:1.4px; font-weight:600; }
+.viewport { width:100%; aspect-ratio:1100 / 900; position:relative; overflow:hidden; border:1px solid var(--border); border-radius:12px; background:var(--background); box-shadow:0 18px 50px #10271c14; }
+.frame { display:block; position:absolute; top:0; left:0; width:1100px; height:900px; border:0; transform-origin:top left; pointer-events:none; }

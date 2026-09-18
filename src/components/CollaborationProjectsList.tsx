@@ -1,5 +1,6 @@
-import styles from "../styles/projectsList.module.css"
-import link from "../styles/links.module.css";
+import ProjectCards from "./ProjectCards";
+
+
 
 type Project = {
   id: string;
@@ -16,7 +17,7 @@ type Props = {
 };
 
 
-import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import { getProjectCompletion } from "../utils/getProjectCompletion";
 
@@ -31,29 +32,7 @@ const CollaborationProjectsList: React.FC<Props> = ({ projects }) => {
     });
   }, [projects]);
 
-  return (
-    <>
-      <h2>Collaboration Projects</h2>
-      <div className={styles.projectList}>
-        {projects.map((p) => (
-          <div key={p.id} className={styles.projectItem}>
-            <h3>
-              <Link href={`/project/${p.id}`} className={link.projectLink}>
-                {p.title}
-              </Link>
-            </h3>
-            <span>Owner: {p.owner}</span>
-            <br />
-            <span>Deadline: {p.deadline}</span>
-            <br />
-            {typeof completion[p.id] === "number" && (
-              <span>Completion: {completion[p.id]}%</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
-  );
+  return <ProjectCards projects={projects} completion={completion} collaboration />;
 };
 
 export default CollaborationProjectsList;

@@ -1,3 +1,4 @@
+import PageTour from "../../../components/PageTour";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
@@ -252,6 +253,7 @@ const TaskFlowPage: React.FC = () => {
 
   return (
     <div >
+      <PageTour page="graph" />
       <BackButton />
       <h1>Task Graph</h1>
       {/* Pass projectId for updating positions */}

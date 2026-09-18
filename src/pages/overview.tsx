@@ -1,8 +1,9 @@
+import PageTour from "../components/PageTour";
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { app } from "../firebase/config";
-import Image from "next/image";
+import OverviewLayout from "../components/OverviewLayout";
 
 import CreateProjectForm from "../components/CreateProjectForm";
 import MyProjectsList from "../components/MyProjectsList";
@@ -10,8 +11,8 @@ import CollaborationProjectsList from "../components/CollaborationProjectsList";
 import InvitesList from "../components/InvitesList";
 import LogoutButton from "@/components/LogoutButton";
 
-import overviewStyles from "../styles/overview.module.css";
-import headerStyles from "../styles/header.module.css";
+
+
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -108,26 +109,14 @@ const Overview = () => {
   if (!user) return <div>Loading...</div>;
 
   return (
-    <div>
-      <div className={headerStyles.header}>
-        <Image src="/wogelplanner-logo.svg" alt="wogelplanner logo" className={headerStyles.logo} width={100} height={100} />
-        <LogoutButton />
-      </div>
-      <div className={overviewStyles.main}>
-        <div className={overviewStyles.createSection}>
-          <CreateProjectForm 
-            onCreate={handleCreateProject} 
-            error={error} 
-            projectOwner={user?.email || ""} />
-        </div>
-        <div className={overviewStyles.projectsSection}>
-          <h1>Projects Overview</h1>
-          <MyProjectsList projects={myProjects} />
-          <CollaborationProjectsList projects={collabProjects} />
-          <InvitesList invites={invites} onRespond={handleInviteResponse} />
-        </div>
-      </div>
-  </div>
+    <OverviewLayout
+      accountAction={<><LogoutButton /><PageTour page="overview" /></>}
+      createForm={<CreateProjectForm onCreate={handleCreateProject} error={error} projectOwner={user?.email || ""} />}
+    >
+      <MyProjectsList projects={myProjects} />
+      <CollaborationProjectsList projects={collabProjects} />
+      <InvitesList invites={invites} onRespond={handleInviteResponse} />
+    </OverviewLayout>
   );
 };
 

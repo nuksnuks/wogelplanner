@@ -13,7 +13,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
     error,
 }) => {
     return (
-        <div className={styles.forms}>
+        <div className={`${styles.forms} ${styles.auth}`}>
             <div className={styles.logoCircle}>
                 <Image
                     src="/wogelplanner-logo.svg"
@@ -26,10 +26,11 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
 
             <h1>{title}</h1>
 
+            <p>A little clarity. A lot of progress.</p>
             {children}
 
             {error && (
-                <p style={{ color: "red", marginTop: "1rem" }}>
+                <p style={{ color: "var(--danger)", marginTop: "1rem" }}>
                     {error}
                 </p>
             )}

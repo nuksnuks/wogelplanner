@@ -19,6 +19,7 @@ const InvitesList: React.FC<Props> = ({ invites, onRespond }) => (
   <>
     <h2>Invites</h2>
     <div className={styles.projectList}>
+        {invites.length === 0 && <p className={styles.empty}>You’re all caught up. No project invitations right now.</p>}
       {invites.map((p) => (
         <div key={p.id} className={styles.projectItem}>
           <h3>

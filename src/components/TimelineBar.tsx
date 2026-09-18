@@ -1,9 +1,13 @@
 import React, { useEffect, useRef } from "react";
+import { FiCheck } from "react-icons/fi";
 import styles from "../styles/categories.module.css";
 
 type CategorySpan = { start: Date; end: Date };
 type TaskLike = { id: string; title?: string; allocatedTimeMs?: number; completed?: boolean };
 type Props = {
+  // Optional deterministic values for static previews; live views keep their defaults.
+  formatDate?: (date: Date) => string;
+  nowMs?: number;
   start?: Date | null;
   end?: Date | null;
   categorySpans?: Record<string, CategorySpan | null>;
@@ -16,7 +20,9 @@ type Props = {
   onAdjustAllocation?: (taskId: string, deltaMs: number) => void;
 };
 
-export default function TimelineBar({ start, end, categorySpans, categoryOrder, tasksByCategory, taskDurations, onOpenTask, onAdjustAllocation }: Props) {
+const localDate = (date: Date) => date.toLocaleDateString();
+
+export default function TimelineBar({ formatDate = localDate, nowMs, start, end, categorySpans, categoryOrder, tasksByCategory, taskDurations, onOpenTask, onAdjustAllocation }: Props) {
   // hooks must be called unconditionally
   const allocationBarRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -54,7 +60,7 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
   const endMs = end.getTime();
   if (!(startMs < endMs)) return null;
 
-  const now = Date.now();
+  const now = nowMs ?? Date.now();
   const total = endMs - startMs;
   const clampedNow = Math.min(Math.max(now, startMs), endMs);
   const todayPct = ((clampedNow - startMs) / total) * 100;
@@ -83,8 +89,8 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
 
   return (
     <>
-      <div className={styles.timelineContainer} aria-hidden>
-        <div className={styles.timelineRange}>{start.toLocaleDateString()}</div>
+      <div className={styles.timelineContainer} aria-hidden data-tour="timeline">
+        <div className={styles.timelineRange}>{formatDate(start)}</div>
         <div className={styles.timelineBarWrap}>
           <div className={styles.timelineBar}>
           {/* progress fill */}
@@ -98,7 +104,7 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
           {/* labels centered per category */}
           {labels.map(l => (
             <div key={`l-${l.id}`} className={styles.categoryLabel} style={{ left: `${l.pct}%` }}>
-              {l.id} {l.completed ? <span className={styles.categoryCompletedCheck} title="Category complete" aria-label={`Category ${l.id} complete`}>✔</span> : null}
+              {l.id} {l.completed ? <span className={styles.categoryCompletedCheck} title="Category complete" aria-label={`Category ${l.id} complete`}><FiCheck aria-hidden="true" /></span> : null}
             </div>
           ))}
 
@@ -109,7 +115,7 @@ export default function TimelineBar({ start, end, categorySpans, categoryOrder, 
           </div>
           </div>
         </div>
-        <div className={styles.timelineRange}>{end.toLocaleDateString()}</div>
+        <div className={styles.timelineRange}>{formatDate(end)}</div>
       </div>
 
       {/* Allocation bar: shows per-task allocation within each category span */}

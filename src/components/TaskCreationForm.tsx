@@ -20,7 +20,7 @@ type TaskCreationFormProps = {
 const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
   title, setTitle, description, setDescription, category, setCategory, newCategory, setNewCategory, categories, error, onSubmit
 }) => (
-  <div className={styles.forms}>
+  <div className={styles.forms} data-tour="create-task">
     <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
       <h2>Add Task</h2>
       <input type="text" placeholder="Task Title" value={title} onChange={e => setTitle(e.target.value)} required />
@@ -41,7 +41,7 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
         <input type="text" placeholder="New Category" value={newCategory} onChange={e => setNewCategory(e.target.value)} />
       </div>
       <button type="submit">Add Task</button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
     </form>
   </div>
 

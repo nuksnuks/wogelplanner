@@ -104,8 +104,9 @@ export const TaskFlow: React.FC<TaskFlowProps> = ({ tasks, edges, setEdges, onNo
   );
 
   return (
-    <div style={{ width: "100%", height: 680 }}>
+    <div style={{ width: "100%", height: 680 }} data-tour="task-graph">
       <ReactFlow
+        colorMode="system"
         nodes={nodes}
         onNodesChange={onNodesChange}
         edges={coloredEdges}

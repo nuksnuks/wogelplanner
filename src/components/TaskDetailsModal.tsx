@@ -1,4 +1,5 @@
 import React from "react";
+import { FiCheckCircle } from "react-icons/fi";
 import styles from "../styles/modal.module.css";
 
 import { doc, updateDoc } from "firebase/firestore";
@@ -243,7 +244,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose, onUp
             task.category
           )}
         </p>
-        <p><strong>Status:</strong> {task.completed ? "Completed ✅" : "Incomplete"}</p>
+        <p><strong>Status:</strong> {task.completed ? <>Completed <FiCheckCircle aria-hidden="true" className="inlineIcon" /></> : "Incomplete"}</p>
         {typeof (displayAllocatedMs ?? allocatedTimeMs) === 'number' && !task.completed && (
           <p onDoubleClick={startAllocatedEdit} style={{ cursor: 'pointer' }}>
             <strong>Allocated time:</strong>{' '}
